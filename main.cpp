@@ -179,7 +179,7 @@ Color shade(infoImpacto impacto, Rayo rayo, int depth)
     for cada luz
     {
         Vec L =
-            normalizar(light.position - impacto.punto);
+            (light.position - impacto.punto).normalizar();
 
 
 
@@ -224,7 +224,7 @@ Color shade(infoImpacto impacto, Rayo rayo, int depth)
             reflect(-L, impacto.normal);
 
         Vec V =
-            normalizar(-rayo.direction);
+            (-rayo.direction).normalizar();
 
         double spec =
             pow(max(impacto.normal.productoEscalar(R),0),
@@ -376,9 +376,9 @@ public:
         Vec3 vectorEsferaCamara = rayo.origen - centro; 
         
         //Sustituyo ecuacion del rayo dentro de la de la esfera// 
-        double a = productoEscalar(rayo.direccion, rayo.direccion); 
-        double b = 2.0 * productoEscalar(vectorEsferaCamara, rayo.direccion); 
-        double c = productoEscalar(vectorEsferaCamara, vectorEsferaCamara) - radio * radio; 
+        double a = rayo.direccion.productoEscalar(rayo.direccion);
+        double b = 2.0 * vectorEsferaCamara.productoEscalar(rayo.direccion);
+        double c = vectorEsferaCamara.productoEscalar(vectorEsferaCamara) - radio * radio;
         
         double discriminante = b * b - 4.0 * a * c; 
         
@@ -406,7 +406,7 @@ public:
         impacto.impacto = true; 
         impacto.t = t; 
         impacto.punto = rayo.origen + rayo.direccion * t; 
-        impacto.normal = normalizar(impacto.punto - centro); 
+        impacto.normal = (impacto.punto - centro).normalizar();
         impacto.material = material; 
         
         return true; 
@@ -552,7 +552,7 @@ struct Light
 
 Vec reflect(I, N)
 {
-    return I - 2 * productoEscalar(I, N) * N;
+    return I - N * (2 * I.productoEscalar(N));
 }
 
 
