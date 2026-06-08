@@ -1,0 +1,3 @@
+﻿  main.cpp
+C:\Users\Jose\Desktop\ICG20\OpenGL-basico\main.cpp(95,22): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+  OpenGL-basico.vcxproj -> C:\Users\Jose\Desktop\ICG20\OpenGL-basico\Debug\OpenGL-basico.exe
