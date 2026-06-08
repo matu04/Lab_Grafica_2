@@ -81,13 +81,13 @@ class Color{
         }
 };
 
-class Ray{
+class Rayo{
     public:
         Vec origen;
         Vec direccion;
 
-        Ray() : origen(), direccion() {}
-        Ray(Vec o, Vec d) : origen(o), direccion(d.normalizar()) {}
+        Rayo() : origen(), direccion() {}
+        Rayo(Vec o, Vec d) : origen(o), direccion(d.normalizar()) {}
 };
 
 // =============================
@@ -119,7 +119,7 @@ renderizar()
 {
     for cada pixel(x, y)
     {
-        Ray r = camara.generarRayo(x, y);
+        Rayo r = camara.generarRayo(x, y);
 
         Color c = traceRay(r, 0);
 
@@ -133,20 +133,20 @@ renderizar()
 // TRACE RAY (NUCLEO DEL RAY TRACER)
 // ===================================
 
-Color traceRay(Ray ray, int depth)
+Color traceRay(Rayo rayo, int depth)
 {
     if (depth > MAX_DEPTH)
         return backgroundColor;
 
-    HitInfo hit;
+    infoImpacto impacto;
 
     bool huboInterseccion =
-        escena.intersectar(ray, hit);
+        escena.intersectar(rayo, impacto);
 
     if (!huboInterseccion)
         return backgroundColor;
 
-    return shade(hit, ray, depth);
+    return shade(impacto, rayo, depth);
 }
 
 
@@ -155,9 +155,9 @@ Color traceRay(Ray ray, int depth)
 // SHADING
 // ===================================
 
-Color shade(HitInfo hit, Ray ray, int depth)
+Color shade(infoImpacto impacto, Rayo rayo, int depth)
 {
-    Material mat = hit.material;
+    Material mat = impacto.material;
 
     Color finalColor = Color(0, 0, 0);
 
@@ -179,7 +179,7 @@ Color shade(HitInfo hit, Ray ray, int depth)
     for cada luz
     {
         Vec L =
-            normalizar(light.position - hit.point);
+            normalizar(light.position - impacto.punto);
 
 
 
@@ -187,8 +187,8 @@ Color shade(HitInfo hit, Ray ray, int depth)
     // SHADOW RAY
     // ========================
 
-    Ray shadowRay(
-        hit.point + epsilon * hit.normal,
+    Rayo shadowRay(
+        impacto.punto + epsilon * impacto.normal,
         L
     );
 
@@ -207,7 +207,7 @@ Color shade(HitInfo hit, Ray ray, int depth)
         // ====================
 
         double diff =
-            max(0, hit.normal.productoEscalar(L));
+            max(0, impacto.normal.productoEscalar(L));
 
         finalColor +=
             mat.diffuse *
@@ -221,13 +221,13 @@ Color shade(HitInfo hit, Ray ray, int depth)
         // ====================
 
         Vec R =
-            reflect(-L, hit.normal);
+            reflect(-L, impacto.normal);
 
         Vec V =
-            normalizar(-ray.direction);
+            normalizar(-rayo.direction);
 
         double spec =
-            pow(max(hit.normal.productoEscalar(R),0),
+            pow(max(impacto.normal.productoEscalar(R),0),
                 mat.shininess);
 
         finalColor +=
@@ -246,11 +246,11 @@ Color shade(HitInfo hit, Ray ray, int depth)
         if (mat.reflectivity > 0)
         {
             Vec R =
-                reflect(ray.direction,
-                    hit.normal);
+                reflect(rayo.direction,
+                    impacto.normal);
 
-            Ray reflectedRay(
-                hit.point + epsilon * hit.normal,
+            Rayo reflectedRay(
+                impacto.punto + epsilon * impacto.normal,
                 R
             );
 
@@ -277,16 +277,16 @@ Color shade(HitInfo hit, Ray ray, int depth)
 
         Vec T =
             refract(
-                ray.direction,
-                hit.normal,
+                rayo.direction,
+                impacto.normal,
                 mat.ior,
                 totalInternalReflection
             );
 
         if (!totalInternalReflection)
         {
-            Ray refractedRay(
-                hit.point - epsilon * hit.normal,
+            Rayo refractedRay(
+                impacto.punto - epsilon * impacto.normal,
                 T
             );
 
@@ -321,14 +321,14 @@ Scene
 
 
 
-    bool intersectar(Ray r, HitInfo& hit)
+    bool intersectar(Rayo r, infoImpacto& impacto)
     {
         buscar la interseccion mas cercana
     }
 
 
 
-    bool hayInterseccion(Ray r)
+    bool hayInterseccion(Rayo r)
     {
         usado para sombras
     }
@@ -340,14 +340,14 @@ Scene
 // OBJETO ABSTRACTO
 // ===================================
 
-class Object
-{
-    Material material;
-
-    virtual bool intersect(
-        Ray ray,
-        HitInfo& hit
-    ) = 0;
+class Objeto 
+{ 
+public: 
+    Material material; 
+    
+    virtual ~Objeto() = default; 
+    
+    virtual bool interseccion(Rayo rayo, infoImpacto& impacto) = 0;
 };
 
 
@@ -356,12 +356,61 @@ class Object
 // OBJETOS GEOMETRICOS
 // ===================================
 
-class Sphere : public Object
-{
-    Vec center;
-    double radius;
+class Esfera : public Objeto 
+{ 
+public: 
+    Vec3 centro; 
+    double radio; 
+    
+    Esfera(Vec3 centro, double radio, Material material) 
+    { 
+        this->centro = centro; 
+        this->radio = radio; 
+        this->material = material; 
+    } 
+    
+    bool interseccion(Rayo rayo, infoImpacto& impacto) override
+    { 
+        const double EPSILON = 0.000001; 
+        
+        Vec3 vectorEsferaCamara = rayo.origen - centro; 
+        
+        //Sustituyo ecuacion del rayo dentro de la de la esfera// 
+        double a = productoEscalar(rayo.direccion, rayo.direccion); 
+        double b = 2.0 * productoEscalar(vectorEsferaCamara, rayo.direccion); 
+        double c = productoEscalar(vectorEsferaCamara, vectorEsferaCamara) - radio * radio; 
+        
+        double discriminante = b * b - 4.0 * a * c; 
+        
+        if (discriminante < 0) 
+            return false; 
+        
+        double raiz = sqrt(discriminante); 
+        
+        double t1 = (-b - raiz) / (2.0 * a); 
+        double t2 = (-b + raiz) / (2.0 * a); 
+        
+        double t; 
+        
+        if (t1 > EPSILON) 
+            t = t1; 
+        else if (t2 > EPSILON) 
+            t = t2; 
+        else 
+            return false; 
 
-    intersect(...)
+        //Consideras esferas mas lejos// 
+        if (t >= impacto.t) 
+            return false; 
+        
+        impacto.impacto = true; 
+        impacto.t = t; 
+        impacto.punto = rayo.origen + rayo.direccion * t; 
+        impacto.normal = normalizar(impacto.punto - centro); 
+        impacto.material = material; 
+        
+        return true; 
+    } 
 };
 
 
@@ -393,19 +442,15 @@ class Cylinder : public Object
 
 
 // ===================================
-// HIT INFO
+// INFO DE IMPACTO
 // ===================================
 
-struct HitInfo
+struct infoImpacto
 {
-    bool hit;
-
+    bool impacto;
     double t;
-
-    Vec point;
-
-    Vec normal;
-
+    Vec3 punto;
+    Vec3 normal;
     Material material;
 };
 
@@ -449,7 +494,7 @@ public:
     int alto;
     Camara();
     Camara(Vec posicion, Vec objetivo, Vec arriba, double fov, int ancho, int alto);
-    Ray generarRayo(int x, int y);
+    Rayo generarRayo(int x, int y);
 };
 Camara::Camara() {
     posicion = Vec(0, 0, 0);
@@ -470,7 +515,7 @@ Camara::Camara(Vec posicion,Vec objetivo,Vec arriba,double fov,int ancho,int alt
     this->alto = alto;
 }
 
-Ray Camara::generarRayo(int x, int y) {
+Rayo Camara::generarRayo(int x, int y) {
     // coordenadas normalizadas [0,1]
     double u =(x + 0.5) / ancho;
     double v =(y + 0.5) / alto;
@@ -483,7 +528,7 @@ Ray Camara::generarRayo(int x, int y) {
     px *= scale;
     py *= scale;
     Vec dir =(adelante +derecha * px +arriba * py).normalizar();
-    return Ray(posicion, dir);
+    return Rayo(posicion, dir);
 }
 
 // ===================================
