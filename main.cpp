@@ -6,7 +6,7 @@ main()
 {
     cargarEscenaXML();
 
-    inicializarCamara();
+    Camara cam;
 
     inicializarFramebuffer();
 
@@ -14,6 +14,8 @@ main()
 
     guardarImagen();
 }
+
+
 
 
 
@@ -344,24 +346,58 @@ struct Material
 // CAMERA
 // ===================================
 
-class Camera
-{
-    Vec3 position;
 
-    Vec3 forward;
-    Vec3 right;
-    Vec3 up;
-
+class Camara {
+public:
+    Vec3 posicion;
+    Vec3 adelante;
+    Vec3 arriba;
+    Vec3 derecha;
     double fov;
-
-
-
-    Ray generateRay(x, y)
-    {
-        convertir pixel->viewport
-    }
+    int ancho;
+    int alto;
+    Camara();
+    Camara(Vec3 posicion, Vec3 objetivo, Vec3 arriba, double fov, int ancho, int alto);
+    Ray generarRayo(int x, int y);
 };
+Camara::Camara() {
+    posicion = Vec3(0, 0, 0);
+    adelante = Vec3(0, 0, -1);
+    arriba = Vec3(0, 1, 0);
+    derecha = Vec3(1, 0, 0);
+    fov = 60;
+    ancho = 800;
+    alto = 600;
+}
+Camara::Camara(Vec3 posicion, Vec3 objetivo, Vec3 arriba, double fov, int ancho, int alto) {
+    this->posicion = posicion;
+    adelante = normalize(objetivo - posicion);
+    derecha = normalize(cross(adelante, arriba));
+    this->arriba = normalize(cross(derecha, adelante));
+    this->fov = fov;
+    this->ancho = ancho;
+    this->alto = alto;
+}
 
+Camara::generarRayo(int x, int y) {
+   // Coordenadas normalizadas [0,1]
+    double u = (x + 0.5) / width;
+    double v = (y + 0.5) / height;
+
+    double aspect = (double)width / height;
+
+    // Coordenadas entre [-1,1]
+    double px = (2.0 * u - 1.0) * aspect;
+    double py = (1.0 - 2.0 * v);
+
+    double scale = tan(fov * 0.5 * M_PI / 180.0);
+    px *= scale;
+    py *= scale;
+
+    Vec3 dir = normalize(adelante +px * derecha +py * arriba);
+
+    return Ray(posicion, dir);
+}
 
 
 // ===================================
@@ -421,3 +457,5 @@ guardarImagen()
 {
     png / bmp
 }
+
+
