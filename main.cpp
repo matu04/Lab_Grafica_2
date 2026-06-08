@@ -1,5 +1,8 @@
-
+#include <iostream>
+#include <FreeImage.h>
 #include <cmath>
+
+const double PI = 3.14159265358979323846;
 
 
 
@@ -94,249 +97,365 @@ class Rayo{
         Rayo(Vec o, Vec d) : origen(o), direccion(d.normalizar()) {}
 };
 
+
+
+class Framebuffer {
+public:
+
+    int width;
+    int height;
+
+    Color* pixels;
+
+    Framebuffer(int w, int h) {
+        width = w;
+        height = h;
+        pixels = new Color[width * height];
+    }
+
+    ~Framebuffer() {
+        delete[] pixels;
+    }
+
+    void setPixel(int x, int y, const Color& c) {
+        pixels[y * width + x] = c;
+    }
+
+    Color getPixel(int x, int y) const {
+        return pixels[y * width + x];
+    }
+};
+
+
+struct Material
+{
+    Color ambient;
+
+    Color diffuse;
+
+    Color specular;
+
+    double shininess;
+
+    double reflectivity;
+
+    double transparency;
+
+    double ior; // indice refraccion
+};
+
+struct infoImpacto
+{
+    bool impacto;
+    double t;
+    Vec punto;
+    Vec normal;
+    Material material;
+};
+
+
+
+// ===================================
+// MATERIAL
+// ===================================
+
+
+
+void guardarImagen(const Framebuffer& fb, const char* filename) {
+
+    FIBITMAP* image = FreeImage_Allocate(fb.width, fb.height, 24);
+
+    for (int y = 0; y < fb.height; y++) {
+
+        for (int x = 0; x < fb.width; x++) {
+
+            Color c = fb.getPixel(x, y);
+
+            c.acotar();
+
+            RGBQUAD color;
+
+            color.rgbRed = (BYTE)(c.r * 255);
+            color.rgbGreen = (BYTE)(c.g * 255);
+            color.rgbBlue = (BYTE)(c.b * 255);
+
+            FreeImage_SetPixelColor(image, x, fb.height - y - 1, &color);
+        }
+    }
+
+    FreeImage_Save(FIF_PNG, image, filename);
+
+    FreeImage_Unload(image);
+}
+
+
+int main() {
+
+    FreeImage_Initialise();
+
+    int width = 800;
+    int height = 600;
+
+    Framebuffer fb(width, height);
+
+    for (int y = 0; y < height; y++) {
+
+        for (int x = 0; x < width; x++) {
+
+            fb.setPixel(x, y, Color(0, 0, 0));
+        }
+    }
+
+    guardarImagen(fb, "../output.png");
+
+    FreeImage_DeInitialise();
+
+    return 0;
+}
+
 // =============================
 // WHITTED RAY TRACER - ESQUELETO
 // =============================
 
-main()
-{
-    cargarEscenaXML();
-
-    Camara cam;
-
-    inicializarFramebuffer();
-
-    renderizar();
-
-    guardarImagen();
-}
-
-
-
-
-
-// ===================================
-// RENDER PRINCIPAL
-// ===================================
-
-renderizar()
-{
-    for cada pixel(x, y)
-    {
-        Rayo r = camara.generarRayo(x, y);
-
-        Color c = traceRay(r, 0);
-
-        framebuffer[x][y] = c;
-    }
-}
-
-
-
-// ===================================
-// TRACE RAY (NUCLEO DEL RAY TRACER)
-// ===================================
-
-Color traceRay(Rayo rayo, int depth)
-{
-    if (depth > MAX_DEPTH)
-        return backgroundColor;
-
-    infoImpacto impacto;
-
-    bool huboInterseccion =
-        escena.intersectar(rayo, impacto);
-
-    if (!huboInterseccion)
-        return backgroundColor;
-
-    return shade(impacto, rayo, depth);
-}
-
-
-
-// ===================================
-// SHADING
-// ===================================
-
-Color shade(infoImpacto impacto, Rayo rayo, int depth)
-{
-    Material mat = impacto.material;
-
-    Color finalColor = Color(0, 0, 0);
-
-
-
-    // ============================
-    // 1. AMBIENT
-    // ============================
-
-    finalColor +=
-        mat.ambient * ambientLight;
-
-
-
-    // ============================
-    // 2. LUCES
-    // ============================
-
-    for cada luz
-    {
-        Vec L =
-            (light.position - impacto.punto).normalizar();
-
-
-
-    // ========================
-    // SHADOW RAY
-    // ========================
-
-    Rayo shadowRay(
-        impacto.punto + epsilon * impacto.normal,
-        L
-    );
-
-    bool inShadow =
-        escena.hayInterseccion(
-            shadowRay
-        );
-
-
-
-    if (!inShadow)
-    {
-
-        // ====================
-        // DIFUSO (LAMBERT)
-        // ====================
-
-        double diff =
-            max(0, impacto.normal.productoEscalar(L));
-
-        finalColor +=
-            mat.diffuse *
-            light.color *
-            diff;
-
-
-
-        // ====================
-        // PHONG ESPECULAR
-        // ====================
-
-        Vec R =
-            reflect(L.opuesto(), impacto.normal);
-
-        Vec V =
-            rayo.direccion.opuesto().normalizar();
-
-        double spec =
-            pow(max(impacto.normal.productoEscalar(R),0),
-                mat.shininess);
-
-        finalColor +=
-            mat.specular *
-            light.color *
-            spec;
-    }
-    }
-
-
-
-        // ============================
-        // 3. REFLEXION
-        // ============================
-
-        if (mat.reflectivity > 0)
-        {
-            Vec R =
-                reflect(rayo.direction,
-                    impacto.normal);
-
-            Rayo reflectedRay(
-                impacto.punto + epsilon * impacto.normal,
-                R
-            );
-
-            Color reflectedColor =
-                traceRay(
-                    reflectedRay,
-                    depth + 1
-                );
-
-            finalColor +=
-                reflectedColor *
-                mat.reflectivity;
-        }
-
-
-
-    // ============================
-    // 4. REFRACCION
-    // ============================
-
-    if (mat.transparency > 0)
-    {
-        bool totalInternalReflection;
-
-        Vec T =
-            refract(
-                rayo.direction,
-                impacto.normal,
-                mat.ior,
-                totalInternalReflection
-            );
-
-        if (!totalInternalReflection)
-        {
-            Rayo refractedRay(
-                impacto.punto - epsilon * impacto.normal,
-                T
-            );
-
-            Color refractedColor =
-                traceRay(
-                    refractedRay,
-                    depth + 1
-                );
-
-            finalColor +=
-                refractedColor *
-                mat.transparency;
-        }
-    }
-
-    return finalColor;
-}
-
-
-
-// ===================================
-// ESCENA
-// ===================================
-
-Scene
-{
-    vector<Object*> objects;
-
-    vector<Light> lights;
-
-    Camera camera;
-
-
-
-    bool intersectar(Rayo r, infoImpacto& impacto)
-    {
-        buscar la interseccion mas cercana
-    }
-
-
-
-    bool hayInterseccion(Rayo r)
-    {
-        usado para sombras
-    }
-};
+//main()
+//{
+//    cargarEscenaXML();
+//
+//    Camara cam;
+//
+//    inicializarFramebuffer();
+//
+//    renderizar();
+//
+//    guardarImagen();
+//}
+//
+//
+//
+//
+//
+//// ===================================
+//// RENDER PRINCIPAL
+//// ===================================
+//
+//renderizar()
+//{
+//    for cada pixel(x, y)
+//    {
+//        Rayo r = camara.generarRayo(x, y);
+//
+//        Color c = traceRay(r, 0);
+//
+//        framebuffer[x][y] = c;
+//    }
+//}
+//
+//
+//
+//// ===================================
+//// TRACE RAY (NUCLEO DEL RAY TRACER)
+//// ===================================
+//
+//Color traceRay(Rayo rayo, int depth)
+//{
+//    if (depth > MAX_DEPTH)
+//        return backgroundColor;
+//
+//    infoImpacto impacto;
+//
+//    bool huboInterseccion =
+//        escena.intersectar(rayo, impacto);
+//
+//    if (!huboInterseccion)
+//        return backgroundColor;
+//
+//    return shade(impacto, rayo, depth);
+//}
+//
+//
+//
+//// ===================================
+//// SHADING
+//// ===================================
+//
+//Color shade(infoImpacto impacto, Rayo rayo, int depth)
+//{
+//    Material mat = impacto.material;
+//
+//    Color finalColor = Color(0, 0, 0);
+//
+//
+//
+//    // ============================
+//    // 1. AMBIENT
+//    // ============================
+//
+//    finalColor +=
+//        mat.ambient * ambientLight;
+//
+//
+//
+//    // ============================
+//    // 2. LUCES
+//    // ============================
+//
+//    for cada luz
+//    {
+//        Vec L =
+//            (light.position - impacto.punto).normalizar();
+//
+//
+//
+//    // ========================
+//    // SHADOW RAY
+//    // ========================
+//
+//    Rayo shadowRay(
+//        impacto.punto + epsilon * impacto.normal,
+//        L
+//    );
+//
+//    bool inShadow =
+//        escena.hayInterseccion(
+//            shadowRay
+//        );
+//
+//
+//
+//    if (!inShadow)
+//    {
+//
+//        // ====================
+//        // DIFUSO (LAMBERT)
+//        // ====================
+//
+//        double diff =
+//            max(0, impacto.normal.productoEscalar(L));
+//
+//        finalColor +=
+//            mat.diffuse *
+//            light.color *
+//            diff;
+//
+//
+//
+//        // ====================
+//        // PHONG ESPECULAR
+//        // ====================
+//
+//        Vec R =
+//            reflect(L.opuesto(), impacto.normal);
+//
+//        Vec V =
+//            rayo.direccion.opuesto().normalizar();
+//
+//        double spec =
+//            pow(max(impacto.normal.productoEscalar(R),0),
+//                mat.shininess);
+//
+//        finalColor +=
+//            mat.specular *
+//            light.color *
+//            spec;
+//    }
+//    }
+//
+//
+//
+//        // ============================
+//        // 3. REFLEXION
+//        // ============================
+//
+//        if (mat.reflectivity > 0)
+//        {
+//            Vec R =
+//                reflect(rayo.direction,
+//                    impacto.normal);
+//
+//            Rayo reflectedRay(
+//                impacto.punto + epsilon * impacto.normal,
+//                R
+//            );
+//
+//            Color reflectedColor =
+//                traceRay(
+//                    reflectedRay,
+//                    depth + 1
+//                );
+//
+//            finalColor +=
+//                reflectedColor *
+//                mat.reflectivity;
+//        }
+//
+//
+//
+//    // ============================
+//    // 4. REFRACCION
+//    // ============================
+//
+//    if (mat.transparency > 0)
+//    {
+//        bool totalInternalReflection;
+//
+//        Vec T =
+//            refract(
+//                rayo.direction,
+//                impacto.normal,
+//                mat.ior,
+//                totalInternalReflection
+//            );
+//
+//        if (!totalInternalReflection)
+//        {
+//            Rayo refractedRay(
+//                impacto.punto - epsilon * impacto.normal,
+//                T
+//            );
+//
+//            Color refractedColor =
+//                traceRay(
+//                    refractedRay,
+//                    depth + 1
+//                );
+//
+//            finalColor +=
+//                refractedColor *
+//                mat.transparency;
+//        }
+//    }
+//
+//    return finalColor;
+//}
+//
+//
+//
+//// ===================================
+//// ESCENA
+//// ===================================
+//
+//Scene
+//{
+//    vector<Object*> objects;
+//
+//    vector<Light> lights;
+//
+//    Camera camera;
+//
+//
+//
+//    bool intersectar(Rayo r, infoImpacto& impacto)
+//    {
+//        buscar la interseccion mas cercana
+//    }
+//
+//
+//
+//    bool hayInterseccion(Rayo r)
+//    {
+//        usado para sombras
+//    }
+//};
 
 
 
@@ -419,7 +538,7 @@ public:
 
 
 
-class Plane : public Object
+/*class Plane : public Object
 {
     Vec point;
     Vec normal;
@@ -441,7 +560,7 @@ class Triangle : public Object
 class Cylinder : public Object
 {
     ...
-};
+};*/
 
 
 
@@ -449,37 +568,7 @@ class Cylinder : public Object
 // INFO DE IMPACTO
 // ===================================
 
-struct infoImpacto
-{
-    bool impacto;
-    double t;
-    Vec punto;
-    Vec normal;
-    Material material;
-};
 
-
-
-// ===================================
-// MATERIAL
-// ===================================
-
-struct Material
-{
-    Color ambient;
-
-    Color diffuse;
-
-    Color specular;
-
-    double shininess;
-
-    double reflectivity;
-
-    double transparency;
-
-    double ior; // indice refraccion
-};
 
 
 
@@ -528,7 +617,7 @@ Rayo Camara::generarRayo(int x, int y) {
     double px =(2.0 * u - 1.0) * aspect;
     double py =(1.0 - 2.0 * v);
     // aplicar FOV
-    double scale =tan(fov * 0.5 * M_PI / 180.0);
+    double scale =tan(fov * 0.5 * PI / 180.0);
     px *= scale;
     py *= scale;
     Vec dir =(adelante +derecha * px +arriba * py).normalizar();
@@ -554,43 +643,43 @@ struct Light
 // MATEMATICA
 // ===================================
 
-Vec reflect(I, N)
-{
-    return I - N * (2 * I.productoEscalar(N));
-}
-
-
-
-Vec3 refract(...)
-{
-    usar ley de Snell
-}
-
-
-
-// ===================================
-// XML
-// ===================================
-
-cargarEscenaXML()
-{
-cargar:
-    -objetos
-        - materiales
-        - luces
-        - camara
-        - resolucion
-}
-
-
-
-// ===================================
-// EXPORTAR IMAGEN
-// ===================================
-
-guardarImagen()
-{
-    png / bmp
-}
+//Vec reflect(I, N)
+//{
+//    return I - N * (2 * I.productoEscalar(N));
+//}
+//
+//
+//
+//Vec3 refract(...)
+//{
+//    usar ley de Snell
+//}
+//
+//
+//
+//// ===================================
+//// XML
+//// ===================================
+//
+//cargarEscenaXML()
+//{
+//cargar:
+//    -objetos
+//        - materiales
+//        - luces
+//        - camara
+//        - resolucion
+//}
+//
+//
+//
+//// ===================================
+//// EXPORTAR IMAGEN
+//// ===================================
+//
+//guardarImagen()
+//{
+//    png / bmp
+//}
 
 
