@@ -12,37 +12,37 @@ class Vec{
         Vec() : x(0), y(0), z(0) {}
         Vec(double x, double y, double z) : x(x), y(y), z(z) {}
 
-        Vec operator+(const Vec& v){
+        Vec operator+(const Vec& v) const {
             return Vec(x + v.x, y + v.y, z + v.z);
         }
 
-        Vec operator-(const Vec& v){
+        Vec operator-(const Vec& v) const {
             return Vec(x - v.x, y - v.y, z - v.z);
         }
 
-        Vec operator*(double s){
+        Vec operator*(double s) const {
             return Vec(x * s, y * s, z * s);
         }
 
-        Vec operator/(double s){
+        Vec operator/(double s) const {
             return Vec(x / s, y / s, z / s);
         }
 
-        double productoEscalar(const Vec& v){
+        double productoEscalar(const Vec& v) const {
             return x * v.x + y * v.y + z * v.z;
         }
 
-        Vec productoVectorial(const Vec& v){
+        Vec productoVectorial(const Vec& v) const {
             double a = y * v.z - z * v.y;
             double b = z * v.x - x * v.z;
             double c = x * v.y - y * v.x;
             return Vec(a, b, c);
         }
-        double largo(){
+        double largo() const {
             return sqrt(x * x + y * y + z * z);
         }
 
-        Vec normalizar(){
+        Vec normalizar() const{
             double len = largo();
             return Vec(x / len, y / len, z / len);
         }
@@ -440,53 +440,49 @@ struct Material
 
 class Camara {
 public:
-    Vec3 posicion;
-    Vec3 adelante;
-    Vec3 arriba;
-    Vec3 derecha;
+    Vec posicion;
+    Vec adelante;
+    Vec arriba;
+    Vec derecha;
     double fov;
     int ancho;
     int alto;
     Camara();
-    Camara(Vec3 posicion, Vec3 objetivo, Vec3 arriba, double fov, int ancho, int alto);
+    Camara(Vec posicion, Vec objetivo, Vec arriba, double fov, int ancho, int alto);
     Ray generarRayo(int x, int y);
 };
 Camara::Camara() {
-    posicion = Vec3(0, 0, 0);
-    adelante = Vec3(0, 0, -1);
-    arriba = Vec3(0, 1, 0);
-    derecha = Vec3(1, 0, 0);
+    posicion = Vec(0, 0, 0);
+    adelante = Vec(0, 0, -1);
+    arriba = Vec(0, 1, 0);
+    derecha = Vec(1, 0, 0);
     fov = 60;
     ancho = 800;
     alto = 600;
 }
-Camara::Camara(Vec3 posicion, Vec3 objetivo, Vec3 arriba, double fov, int ancho, int alto) {
+Camara::Camara(Vec posicion,Vec objetivo,Vec arriba,double fov,int ancho,int alto) {
     this->posicion = posicion;
-    adelante = normalize(objetivo - posicion);
-    derecha = normalize(cross(adelante, arriba));
-    this->arriba = normalize(cross(derecha, adelante));
+    adelante =(objetivo - posicion).normalizar();
+    derecha =adelante.productoVectorial(arriba).normalizar();
+    this->arriba =derecha.productoVectorial(adelante).normalizar();
     this->fov = fov;
     this->ancho = ancho;
     this->alto = alto;
 }
 
-Camara::generarRayo(int x, int y) {
-    // Coordenadas normalizadas [0,1]
-    double u = (x + 0.5) / width;
-    double v = (y + 0.5) / height;
-
-    double aspect = (double)width / height;
-
-    // Coordenadas entre [-1,1]
-    double px = (2.0 * u - 1.0) * aspect;
-    double py = (1.0 - 2.0 * v);
-
-    double scale = tan(fov * 0.5 * M_PI / 180.0);
+Ray Camara::generarRayo(int x, int y) {
+    // coordenadas normalizadas [0,1]
+    double u =(x + 0.5) / ancho;
+    double v =(y + 0.5) / alto;
+    double aspect =(double)ancho / alto;
+    // coordenadas viewport [-1,1]
+    double px =(2.0 * u - 1.0) * aspect;
+    double py =(1.0 - 2.0 * v);
+    // aplicar FOV
+    double scale =tan(fov * 0.5 * M_PI / 180.0);
     px *= scale;
     py *= scale;
-
-    Vec3 dir = normalize(adelante + px * derecha + py * arriba);
-
+    Vec dir =(adelante +derecha * px +arriba * py).normalizar();
     return Ray(posicion, dir);
 }
 
