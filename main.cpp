@@ -28,6 +28,10 @@ class Vec{
             return Vec(x / s, y / s, z / s);
         }
 
+        Vec opuesto() const {
+            return Vec(-x, -y, -z);
+        }
+
         double productoEscalar(const Vec& v) const {
             return x * v.x + y * v.y + z * v.z;
         }
@@ -221,10 +225,10 @@ Color shade(infoImpacto impacto, Rayo rayo, int depth)
         // ====================
 
         Vec R =
-            reflect(-L, impacto.normal);
+            reflect(L.opuesto(), impacto.normal);
 
         Vec V =
-            (-rayo.direction).normalizar();
+            rayo.direccion.opuesto().normalizar();
 
         double spec =
             pow(max(impacto.normal.productoEscalar(R),0),
@@ -359,10 +363,10 @@ public:
 class Esfera : public Objeto 
 { 
 public: 
-    Vec3 centro; 
+    Vec centro; 
     double radio; 
     
-    Esfera(Vec3 centro, double radio, Material material) 
+    Esfera(Vec centro, double radio, Material material) 
     { 
         this->centro = centro; 
         this->radio = radio; 
@@ -373,7 +377,7 @@ public:
     { 
         const double EPSILON = 0.000001; 
         
-        Vec3 vectorEsferaCamara = rayo.origen - centro; 
+        Vec vectorEsferaCamara = rayo.origen - centro; 
         
         //Sustituyo ecuacion del rayo dentro de la de la esfera// 
         double a = rayo.direccion.productoEscalar(rayo.direccion);
@@ -449,8 +453,8 @@ struct infoImpacto
 {
     bool impacto;
     double t;
-    Vec3 punto;
-    Vec3 normal;
+    Vec punto;
+    Vec normal;
     Material material;
 };
 
