@@ -1,3 +1,95 @@
+
+#include <cmath>
+
+
+
+class Vec{
+    public: 
+        double x;
+        double y;
+        double z;
+
+        Vec() : x(0), y(0), z(0) {}
+        Vec(double x, double y, double z) : x(x), y(y), z(z) {}
+
+        Vec operator+(const Vec& v){
+            return Vec(x + v.x, y + v.y, z + v.z);
+        }
+
+        Vec operator-(const Vec& v){
+            return Vec(x - v.x, y - v.y, z - v.z);
+        }
+
+        Vec operator*(double s){
+            return Vec(x * s, y * s, z * s);
+        }
+
+        Vec operator/(double s){
+            return Vec(x / s, y / s, z / s);
+        }
+
+        double productoEscalar(const Vec& v){
+            return x * v.x + y * v.y + z * v.z;
+        }
+
+        Vec productoVectorial(const Vec& v){
+            double a = y * v.z - z * v.y;
+            double b = z * v.x - x * v.z;
+            double c = x * v.y - y * v.x;
+            return Vec(a, b, c);
+        }
+        double largo(){
+            return sqrt(x * x + y * y + z * z);
+        }
+
+        Vec normalizar(){
+            double len = largo();
+            return Vec(x / len, y / len, z / len);
+        }
+};
+
+class Color{
+    public:
+        double r;
+        double g;
+        double b;
+
+        Color() : r(0), g(0), b(0) {}
+        Color(double r, double g, double b) : r(r), g(g), b(b) {}
+
+        Color operator+(const Color& c){
+            return Color(r + c.r, g + c.g, b + c.b);
+        }
+
+        Color operator*(const Color& c){
+            return Color(r * c.r, g * c.g, b * c.b);
+        }
+
+        Color operator*(double s){
+            return Color(r * s, g * s, b * s);
+        }
+
+        void acotar(){
+            if (r < 0.0) r = 0.0;
+            if (r > 1.0) r = 1.0;
+
+            if (g < 0.0) g = 0.0;
+            if (g > 1.0) g = 1.0;
+
+            if (b < 0.0) b = 0.0;
+            if (b > 1.0) b = 1.0;
+        }
+};
+
+class Ray{
+    public:
+        Vec origen;
+        Vec direccion;
+
+        Ray() : origen(), direccion() {}
+        Ray(Vec o, Vec d) : origen(o), direccion(d.normalizar()) {}
+};
+
 // =============================
 // WHITTED RAY TRACER - ESQUELETO
 // =============================
@@ -86,8 +178,8 @@ Color shade(HitInfo hit, Ray ray, int depth)
 
     for cada luz
     {
-        Vec3 L =
-            normalize(light.position - hit.point);
+        Vec L =
+            normalizar(light.position - hit.point);
 
 
 
@@ -115,7 +207,7 @@ Color shade(HitInfo hit, Ray ray, int depth)
         // ====================
 
         double diff =
-            max(0, dot(hit.normal, L));
+            max(0, hit.normal.productoEscalar(L));
 
         finalColor +=
             mat.diffuse *
@@ -128,14 +220,14 @@ Color shade(HitInfo hit, Ray ray, int depth)
         // PHONG ESPECULAR
         // ====================
 
-        Vec3 R =
+        Vec R =
             reflect(-L, hit.normal);
 
-        Vec3 V =
-            normalize(-ray.direction);
+        Vec V =
+            normalizar(-ray.direction);
 
         double spec =
-            pow(max(dot(R,V),0),
+            pow(max(hit.normal.productoEscalar(R),0),
                 mat.shininess);
 
         finalColor +=
@@ -153,7 +245,7 @@ Color shade(HitInfo hit, Ray ray, int depth)
 
         if (mat.reflectivity > 0)
         {
-            Vec3 R =
+            Vec R =
                 reflect(ray.direction,
                     hit.normal);
 
@@ -183,7 +275,7 @@ Color shade(HitInfo hit, Ray ray, int depth)
     {
         bool totalInternalReflection;
 
-        Vec3 T =
+        Vec T =
             refract(
                 ray.direction,
                 hit.normal,
@@ -266,7 +358,7 @@ class Object
 
 class Sphere : public Object
 {
-    Vec3 center;
+    Vec center;
     double radius;
 
     intersect(...)
@@ -276,8 +368,8 @@ class Sphere : public Object
 
 class Plane : public Object
 {
-    Vec3 point;
-    Vec3 normal;
+    Vec point;
+    Vec normal;
 
     intersect(...)
 };
@@ -286,7 +378,7 @@ class Plane : public Object
 
 class Triangle : public Object
 {
-    Vec3 v0, v1, v2;
+    Vec v0, v1, v2;
 
     intersect(...)
 };
@@ -310,9 +402,9 @@ struct HitInfo
 
     double t;
 
-    Vec3 point;
+    Vec point;
 
-    Vec3 normal;
+    Vec normal;
 
     Material material;
 };
@@ -345,7 +437,6 @@ struct Material
 // ===================================
 // CAMERA
 // ===================================
-
 
 class Camara {
 public:
@@ -380,7 +471,7 @@ Camara::Camara(Vec3 posicion, Vec3 objetivo, Vec3 arriba, double fov, int ancho,
 }
 
 Camara::generarRayo(int x, int y) {
-   // Coordenadas normalizadas [0,1]
+    // Coordenadas normalizadas [0,1]
     double u = (x + 0.5) / width;
     double v = (y + 0.5) / height;
 
@@ -394,11 +485,10 @@ Camara::generarRayo(int x, int y) {
     px *= scale;
     py *= scale;
 
-    Vec3 dir = normalize(adelante +px * derecha +py * arriba);
+    Vec3 dir = normalize(adelante + px * derecha + py * arriba);
 
     return Ray(posicion, dir);
 }
-
 
 // ===================================
 // LUZ
@@ -406,7 +496,7 @@ Camara::generarRayo(int x, int y) {
 
 struct Light
 {
-    Vec3 position;
+    Vec position;
 
     Color color;
 
@@ -419,9 +509,9 @@ struct Light
 // MATEMATICA
 // ===================================
 
-Vec3 reflect(I, N)
+Vec reflect(I, N)
 {
-    return I - 2 * dot(I, N) * N;
+    return I - 2 * productoEscalar(I, N) * N;
 }
 
 
