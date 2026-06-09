@@ -333,6 +333,70 @@ public:
     }
 };
 
+class Triangulo : public Objeto
+{
+public:
+    Vec3 v0, v1, v2;
+
+    Triangulo(Vec3 v0, Vec3 v1, Vec3 v2, Material material)
+    {
+        this->v0 = v0;
+        this->v1 = v1;
+        this->v2 = v2;
+        this->material = material;
+    }
+
+    bool interseccion(Ray rayo, infoImpacto& impacto) override
+    {
+        const double EPSILON = 0.000001;
+
+        //Punto dentro del triangulo como P = v0 + u * (v1 - v0) + v * (v2 - v0)
+        // Donde u >= 0; v >= 0; u + v <= 1//
+        Vec3 lado1 = v1 - v0;
+        Vec3 lado2 = v2 - v0;
+
+        //Considerando un punto de un rayo se llega a: origen - v0 = u lado1 + v lado2 - t direccion//
+
+        //vectorAux1 corresponde al determinante del sistema//
+        Vec3 vectorAux1 = rayo.direccion.productoVectorial(lado2);
+        double escalarLadoVectorAux = lado1.productoEscalar(vectorAux1);
+
+        //Chequea si el rayo es paralelo//
+        if (abs(escalarLadoVectorAux) < EPSILON)
+            return false;
+
+        double invEscalarLVA = 1.0 / escalarLadoVectorAux;
+
+        //Cramer//
+        Vec3 vectorV0Origen = rayo.origen - v0;
+        double u = invEscalarLVA * vectorV0Origen.productoEscalar(vectorAux1);
+
+        if (u < 0.0 || u > 1.0)
+            return false;
+
+        Vec3 vectorAux2 = vectorV0Origen.productoVectorial(lado1);
+        double v = invEscalarLVA * rayo.direccion.productoEscalar(vectorAux2);
+
+        if (v < 0.0 || u + v > 1.0)
+            return false;
+
+        double t = invEscalarLVA * lado2.productoEscalar(vectorAux2);
+
+        if (t <= EPSILON)
+            return false;
+
+        if (t >= impacto.t)
+            return false;
+
+        impacto.impacto = true;
+        impacto.t = t;
+        impacto.punto = rayo.origen + rayo.direccion * t;
+        impacto.normal = lado1.productoVectorial(lado2).normalizar();
+        impacto.material = material;
+
+        return true;
+    }
+};
 
 class Escena
 {
