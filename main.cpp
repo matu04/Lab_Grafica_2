@@ -4,56 +4,113 @@
 
 const double PI = 3.14159265358979323846;
 
+class Vec {
+public:
+    double x;
+    double y;
+    double z;
 
+    Vec() : x(0), y(0), z(0) {}
+    Vec(double x, double y, double z) : x(x), y(y), z(z) {}
 
-class Vec{
-    public: 
-        double x;
-        double y;
-        double z;
+    Vec operator+(const Vec& v) const {
+        return Vec(x + v.x, y + v.y, z + v.z);
+    }
 
-        Vec() : x(0), y(0), z(0) {}
-        Vec(double x, double y, double z) : x(x), y(y), z(z) {}
+    Vec operator-(const Vec& v) const {
+        return Vec(x - v.x, y - v.y, z - v.z);
+    }
 
-        Vec operator+(const Vec& v) const {
-            return Vec(x + v.x, y + v.y, z + v.z);
-        }
+    Vec operator*(double s) const {
+        return Vec(x * s, y * s, z * s);
+    }
 
-        Vec operator-(const Vec& v) const {
-            return Vec(x - v.x, y - v.y, z - v.z);
-        }
+    Vec operator/(double s) const {
+        return Vec(x / s, y / s, z / s);
+    }
 
-        Vec operator*(double s) const {
-            return Vec(x * s, y * s, z * s);
-        }
+    Vec opuesto() const {
+        return Vec(-x, -y, -z);
+    }
 
-        Vec operator/(double s) const {
-            return Vec(x / s, y / s, z / s);
-        }
+    double productoEscalar(const Vec& v) const {
+        return x * v.x + y * v.y + z * v.z;
+    }
 
-        Vec opuesto() const {
-            return Vec(-x, -y, -z);
-        }
+    Vec productoVectorial(const Vec& v) const {
+        double a = y * v.z - z * v.y;
+        double b = z * v.x - x * v.z;
+        double c = x * v.y - y * v.x;
+        return Vec(a, b, c);
+    }
+    double largo() const {
+        return sqrt(x * x + y * y + z * z);
+    }
 
-        double productoEscalar(const Vec& v) const {
-            return x * v.x + y * v.y + z * v.z;
-        }
-
-        Vec productoVectorial(const Vec& v) const {
-            double a = y * v.z - z * v.y;
-            double b = z * v.x - x * v.z;
-            double c = x * v.y - y * v.x;
-            return Vec(a, b, c);
-        }
-        double largo() const {
-            return sqrt(x * x + y * y + z * z);
-        }
-
-        Vec normalizar() const{
-            double len = largo();
-            return Vec(x / len, y / len, z / len);
-        }
+    Vec normalizar() const {
+        double len = largo();
+        return Vec(x / len, y / len, z / len);
+    }
 };
+
+class Rayo {
+public:
+    Vec origen;
+    Vec direccion;
+
+    Rayo() : origen(), direccion() {}
+    Rayo(Vec o, Vec d) : origen(o), direccion(d.normalizar()) {}
+};
+
+class Camara {
+public:
+    Vec posicion;
+    Vec adelante;
+    Vec arriba;
+    Vec derecha;
+    double fov;
+    int ancho;
+    int alto;
+    Camara();
+    Camara::Camara(Vec posicion, Vec objetivo, Vec arriba, double fov, int ancho, int alto);
+    Rayo Camara::generarRayo(int x, int y);
+};
+
+Camara::Camara() {
+    posicion = Vec(0, 0, 0);
+    adelante = Vec(0, 0, -1);
+    arriba = Vec(0, 1, 0);
+    derecha = Vec(1, 0, 0);
+    fov = 60;
+    ancho = 800;
+    alto = 600;
+}
+
+Camara::Camara(Vec posicion, Vec objetivo, Vec arriba, double fov, int ancho, int alto) {
+    this->posicion = posicion;
+    adelante = (objetivo - posicion).normalizar();
+    derecha = adelante.productoVectorial(arriba).normalizar();
+    this->arriba = derecha.productoVectorial(adelante).normalizar();
+    this->fov = fov;
+    this->ancho = ancho;
+    this->alto = alto;
+}
+
+Rayo Camara::generarRayo(int x, int y) {
+    // coordenadas normalizadas [0,1]
+    double u = (x + 0.5) / ancho;
+    double v = (y + 0.5) / alto;
+    double aspect = (double)ancho / alto;
+    // coordenadas viewport [-1,1]
+    double px = (2.0 * u - 1.0) * aspect;
+    double py = (1.0 - 2.0 * v);
+    // aplicar FOV
+    double scale = tan(fov * 0.5 * PI / 180.0);
+    px *= scale;
+    py *= scale;
+    Vec dir = (adelante + derecha * px + arriba * py).normalizar();
+    return Rayo(posicion, dir);
+}
 
 class Color{
     public:
@@ -88,17 +145,6 @@ class Color{
         }
 };
 
-class Rayo{
-    public:
-        Vec origen;
-        Vec direccion;
-
-        Rayo() : origen(), direccion() {}
-        Rayo(Vec o, Vec d) : origen(o), direccion(d.normalizar()) {}
-};
-
-
-
 class Framebuffer {
 public:
 
@@ -126,7 +172,6 @@ public:
     }
 };
 
-
 struct Material
 {
     Color ambient;
@@ -152,14 +197,6 @@ struct infoImpacto
     Vec normal;
     Material material;
 };
-
-
-
-// ===================================
-// MATERIAL
-// ===================================
-
-
 
 void guardarImagen(const Framebuffer& fb, const char* filename) {
 
@@ -188,9 +225,76 @@ void guardarImagen(const Framebuffer& fb, const char* filename) {
     FreeImage_Unload(image);
 }
 
+class Objeto
+{
+public:
+    Material material;
 
-int main() {
+    virtual ~Objeto() = default;
 
+    virtual bool interseccion(Rayo rayo, infoImpacto& impacto) = 0;
+};
+
+class Esfera : public Objeto
+{
+public:
+    Vec centro;
+    double radio;
+
+    Esfera(Vec centro, double radio, Material material)
+    {
+        this->centro = centro;
+        this->radio = radio;
+        this->material = material;
+    }
+
+    bool interseccion(Rayo rayo, infoImpacto& impacto) override
+    {
+        const double EPSILON = 0.000001;
+
+        Vec vectorEsferaCamara = rayo.origen - centro;
+
+        //Sustituyo ecuacion del rayo dentro de la de la esfera// 
+        double a = rayo.direccion.productoEscalar(rayo.direccion);
+        double b = 2.0 * vectorEsferaCamara.productoEscalar(rayo.direccion);
+        double c = vectorEsferaCamara.productoEscalar(vectorEsferaCamara) - radio * radio;
+
+        double discriminante = b * b - 4.0 * a * c;
+
+        if (discriminante < 0)
+            return false;
+
+        double raiz = sqrt(discriminante);
+
+        double t1 = (-b - raiz) / (2.0 * a);
+        double t2 = (-b + raiz) / (2.0 * a);
+
+        double t;
+
+        if (t1 > EPSILON)
+            t = t1;
+        else if (t2 > EPSILON)
+            t = t2;
+        else
+            return false;
+
+        //Consideras esferas mas lejos// 
+        if (t >= impacto.t)
+            return false;
+
+        impacto.impacto = true;
+        impacto.t = t;
+        impacto.punto = rayo.origen + rayo.direccion * t;
+        impacto.normal = (impacto.punto - centro).normalizar();
+        impacto.material = material;
+
+        return true;
+    }
+};
+
+
+int main(int argc, char* argv[])
+{
     FreeImage_Initialise();
 
     int width = 800;
@@ -198,36 +302,87 @@ int main() {
 
     Framebuffer fb(width, height);
 
-    for (int y = 0; y < height; y++) {
+    Camara cam;
 
-        for (int x = 0; x < width; x++) {
+    Material mat;
 
-            fb.setPixel(x, y, Color(0, 0, 0));
+    Esfera esfera1(Vec(1, 1, -5),1,mat);
+    Esfera esfera2(Vec(-1, -1, -5),1,mat);
+    Esfera esfera3(Vec(0, 0, -4),0.5,mat);
+
+    Objeto* objetos[3];
+
+    objetos[0] = &esfera1;
+    objetos[1] = &esfera2;
+    objetos[2] = &esfera3;
+
+    Vec luz = Vec(3, 3, 3).normalizar();
+
+    for (int y = 0; y < height; y++)
+    {
+        for (int x = 0; x < width; x++)
+        {
+            Rayo r =  cam.generarRayo(x, y);
+
+            infoImpacto hit;
+
+            hit.t = 999999;
+
+            bool huboImpacto = false;
+
+            for (int i = 0; i < 3; i++)
+            {
+                if (objetos[i]->interseccion(r, hit))
+                {
+                    huboImpacto = true;
+                }
+            }
+
+            if (huboImpacto)
+            {
+                Vec n = hit.normal;
+
+                double intensidad = n.productoEscalar(luz);
+
+                if (intensidad < 0)
+                    intensidad = 0;
+
+                Color c(intensidad,intensidad,intensidad);
+
+                fb.setPixel(x, y, c);
+            }
+            else
+            {
+                fb.setPixel(x,y,Color(0, 0, 0));
+            }
         }
     }
-
-    guardarImagen(fb, "../output.png");
-
+    guardarImagen(fb,"output.png");
     FreeImage_DeInitialise();
-
     return 0;
 }
+
+
 
 // =============================
 // WHITTED RAY TRACER - ESQUELETO
 // =============================
 
-//main()
-//{
-//    cargarEscenaXML();
-//
+//int main(int argc, char* argv[]) {
 //    Camara cam;
 //
-//    inicializarFramebuffer();
+//    //cargarEscenaXML();
+//
+//    Material mat;
+//    Esfera esfera(Vec(0, 0, -5),1.0,mat);
+//    
+//
+//    //inicializarFramebuffer();
 //
 //    renderizar();
 //
 //    guardarImagen();
+//    return 0
 //}
 //
 //
@@ -238,11 +393,13 @@ int main() {
 //// RENDER PRINCIPAL
 //// ===================================
 //
-//renderizar()
+//void renderizar()
 //{
-//    for cada pixel(x, y)
+//    for (int y = 0; y < cam.height; y++)
 //    {
-//        Rayo r = camara.generarRayo(x, y);
+//        for (int x = 0; x < cam.width; x++)
+//        {
+//        Rayo r = cam.generarRayo(x, y);
 //
 //        Color c = traceRay(r, 0);
 //
@@ -463,78 +620,13 @@ int main() {
 // OBJETO ABSTRACTO
 // ===================================
 
-class Objeto 
-{ 
-public: 
-    Material material; 
-    
-    virtual ~Objeto() = default; 
-    
-    virtual bool interseccion(Rayo rayo, infoImpacto& impacto) = 0;
-};
-
 
 
 // ===================================
 // OBJETOS GEOMETRICOS
 // ===================================
 
-class Esfera : public Objeto 
-{ 
-public: 
-    Vec centro; 
-    double radio; 
-    
-    Esfera(Vec centro, double radio, Material material) 
-    { 
-        this->centro = centro; 
-        this->radio = radio; 
-        this->material = material; 
-    } 
-    
-    bool interseccion(Rayo rayo, infoImpacto& impacto) override
-    { 
-        const double EPSILON = 0.000001; 
-        
-        Vec vectorEsferaCamara = rayo.origen - centro; 
-        
-        //Sustituyo ecuacion del rayo dentro de la de la esfera// 
-        double a = rayo.direccion.productoEscalar(rayo.direccion);
-        double b = 2.0 * vectorEsferaCamara.productoEscalar(rayo.direccion);
-        double c = vectorEsferaCamara.productoEscalar(vectorEsferaCamara) - radio * radio;
-        
-        double discriminante = b * b - 4.0 * a * c; 
-        
-        if (discriminante < 0) 
-            return false; 
-        
-        double raiz = sqrt(discriminante); 
-        
-        double t1 = (-b - raiz) / (2.0 * a); 
-        double t2 = (-b + raiz) / (2.0 * a); 
-        
-        double t; 
-        
-        if (t1 > EPSILON) 
-            t = t1; 
-        else if (t2 > EPSILON) 
-            t = t2; 
-        else 
-            return false; 
 
-        //Consideras esferas mas lejos// 
-        if (t >= impacto.t) 
-            return false; 
-        
-        impacto.impacto = true; 
-        impacto.t = t; 
-        impacto.punto = rayo.origen + rayo.direccion * t; 
-        impacto.normal = (impacto.punto - centro).normalizar();
-        impacto.material = material; 
-        
-        return true; 
-    } 
-};
 
 
 
@@ -576,53 +668,7 @@ class Cylinder : public Object
 // CAMERA
 // ===================================
 
-class Camara {
-public:
-    Vec posicion;
-    Vec adelante;
-    Vec arriba;
-    Vec derecha;
-    double fov;
-    int ancho;
-    int alto;
-    Camara();
-    Camara(Vec posicion, Vec objetivo, Vec arriba, double fov, int ancho, int alto);
-    Rayo generarRayo(int x, int y);
-};
-Camara::Camara() {
-    posicion = Vec(0, 0, 0);
-    adelante = Vec(0, 0, -1);
-    arriba = Vec(0, 1, 0);
-    derecha = Vec(1, 0, 0);
-    fov = 60;
-    ancho = 800;
-    alto = 600;
-}
-Camara::Camara(Vec posicion,Vec objetivo,Vec arriba,double fov,int ancho,int alto) {
-    this->posicion = posicion;
-    adelante =(objetivo - posicion).normalizar();
-    derecha =adelante.productoVectorial(arriba).normalizar();
-    this->arriba =derecha.productoVectorial(adelante).normalizar();
-    this->fov = fov;
-    this->ancho = ancho;
-    this->alto = alto;
-}
 
-Rayo Camara::generarRayo(int x, int y) {
-    // coordenadas normalizadas [0,1]
-    double u =(x + 0.5) / ancho;
-    double v =(y + 0.5) / alto;
-    double aspect =(double)ancho / alto;
-    // coordenadas viewport [-1,1]
-    double px =(2.0 * u - 1.0) * aspect;
-    double py =(1.0 - 2.0 * v);
-    // aplicar FOV
-    double scale =tan(fov * 0.5 * PI / 180.0);
-    px *= scale;
-    py *= scale;
-    Vec dir =(adelante +derecha * px +arriba * py).normalizar();
-    return Rayo(posicion, dir);
-}
 
 // ===================================
 // LUZ
