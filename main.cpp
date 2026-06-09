@@ -1,5 +1,5 @@
 #include <iostream>
-#include <FreeImage.h>
+#include "FreeImage.h"
 #include <cmath>
 
 const double PI = 3.14159265358979323846;
@@ -466,31 +466,21 @@ void cargarEscena(Escena& escena)
     escena.luzPos = Vec(0, 1, -3);
 }
 
-Color traceRay(Escena& escena, Rayo r)
-{
-    infoImpacto hit;
-
+bool intersectarEscena(Escena& escena, Rayo rayo, infoImpacto& hit, Objeto*& objetoImpactado){
     hit.t = 999999;
+    hit.impacto = false;
 
-    bool huboImpacto = false;
-
-    Objeto* objetoImpactado = nullptr;
-
-    for (int i = 0; i < escena.cantidadObjetos; i++)
-    {
-        if (escena.objetos[i]->interseccion(r, hit))
-        {
-            huboImpacto = true;
-
+    for (int i = 0; i < escena.cantidadObjetos; i++){
+        if (escena.objetos[i]->interseccion(rayo, hit)){
             objetoImpactado = escena.objetos[i];
+            hit.impacto = true;
         }
     }
 
-    if (!huboImpacto)
-    {
-        return Color(0, 0, 0);
-    }
+    return hit.impacto;
+}
 
+Color shade(Escena& escena,infoImpacto& hit,Objeto* objetoImpactado,Rayo r,int depth){
     Vec n = hit.normal;
 
     Vec dirALuz = escena.luzPos - hit.punto;
@@ -507,8 +497,7 @@ Color traceRay(Escena& escena, Rayo r)
 
     double distanciaLuz = dirALuz.largo();
 
-    for (int i = 0; i < escena.cantidadObjetos; i++)
-    {
+    for (int i = 0; i < escena.cantidadObjetos; i++){
         if (escena.objetos[i] == objetoImpactado)
             continue;
 
@@ -517,39 +506,45 @@ Color traceRay(Escena& escena, Rayo r)
             enSombra = true;
         }
     }
+    if (enSombra){
+        return Color(0, 0, 0);
+    }
+    double intensidad = n.productoEscalar(L);
+    if (intensidad < 0){
+        intensidad = 0;
+    }
+    return hit.material.diffuse * intensidad;
+}
 
-    if (enSombra)
-    {
+Color traceRay(Escena& escena, Rayo r, int depth){
+    infoImpacto hit;
+    Objeto* objetoImpactado = nullptr;
+
+    if(depth > 5){
         return Color(0, 0, 0);
     }
 
-    double intensidad = n.productoEscalar(L);
+    if (!intersectarEscena(escena, r, hit, objetoImpactado)){
+        return Color(0, 0, 0);
+    }
 
-    if (intensidad < 0)
-        intensidad = 0;
-
-    Color c(intensidad, intensidad, intensidad);
-
-    return c;
+    return shade(escena, hit, objetoImpactado, r, depth);
 }
 
 void renderizar(Escena& escena, Framebuffer& fb)
 {
-    for (int y = 0; y < fb.height; y++)
-    {
-        for (int x = 0; x < fb.width; x++)
-        {
+    for (int y = 0; y < fb.height; y++){
+        for (int x = 0; x < fb.width; x++){
             Rayo r = escena.cam.generarRayo(x, y);
 
-            Color c = traceRay(escena, r);
+            Color c = traceRay(escena, r, 0);
 
             fb.setPixel(x, y, c);
         }
     }
 }
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]){
     FreeImage_Initialise();
 
     int width = 800;
