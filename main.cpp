@@ -294,6 +294,7 @@ public:
 
 class Plano : public Objeto
 {
+public:
     Vec punto;
     Vec normal;
 
@@ -332,144 +333,179 @@ class Plano : public Objeto
     }
 };
 
+
+class Escena
+{
+public:
+
+    Objeto* objetos[100];
+
+    int cantidadObjetos;
+
+    Vec luzPos;
+
+    Camara cam;
+
+
+
+    Escena()
+    {
+        cantidadObjetos = 0;
+    }
+
+
+
+    void agregarObjeto(Objeto* obj)
+    {
+        objetos[cantidadObjetos] = obj;
+
+        cantidadObjetos++;
+    }
+};
+
+void cargarEscena(Escena& escena)
+{
+    Material mat; mat.diffuse = Color(1, 1, 1);
+
+    Esfera* esfera1 = new Esfera(Vec(1, 1, -5), 1, mat);
+    Esfera* esfera2 = new Esfera(Vec(-1, -1, -5), 1, mat);
+    Esfera* esfera3 = new Esfera(Vec(0, 0, -4), 0.5, mat);
+
+    Material matPiso; matPiso.diffuse = Color(1, 1, 1);
+    Material matTecho; matTecho.diffuse = Color(1, 1, 1);
+    Material matIzquierda; matIzquierda.diffuse = Color(1, 0, 0);
+    Material matDerecha; matDerecha.diffuse = Color(0, 1, 0);
+    Material matFondo; matFondo.diffuse = Color(1, 1, 1);
+
+    Plano* piso = new Plano(Vec(0, -2, 0), Vec(0, 1, 0), matPiso);
+    Plano* techo = new Plano(Vec(0, 2, 0), Vec(0, -1, 0), matTecho);
+    Plano* izquierda = new Plano(Vec(-3, 0, 0), Vec(1, 0, 0), matIzquierda);
+    Plano* derecha = new Plano(Vec(3, 0, 0), Vec(-1, 0, 0), matDerecha);
+    Plano* fondo = new Plano(Vec(0, 0, -10), Vec(0, 0, 1), matFondo);
+
+    escena.agregarObjeto(esfera1);
+    escena.agregarObjeto(esfera2);
+    escena.agregarObjeto(esfera3);
+
+    escena.agregarObjeto(piso);
+    escena.agregarObjeto(techo);
+    escena.agregarObjeto(izquierda);
+    escena.agregarObjeto(derecha);
+    escena.agregarObjeto(fondo);
+
+    escena.cam = Camara();
+
+    escena.luzPos = Vec(0, 1, -3);
+}
+
+Color traceRay(Escena& escena, Rayo r)
+{
+    infoImpacto hit;
+
+    hit.t = 999999;
+
+    bool huboImpacto = false;
+
+    Objeto* objetoImpactado = nullptr;
+
+    for (int i = 0; i < escena.cantidadObjetos; i++)
+    {
+        if (escena.objetos[i]->interseccion(r, hit))
+        {
+            huboImpacto = true;
+
+            objetoImpactado = escena.objetos[i];
+        }
+    }
+
+    if (!huboImpacto)
+    {
+        return Color(0, 0, 0);
+    }
+
+    Vec n = hit.normal;
+
+    Vec dirALuz = escena.luzPos - hit.punto;
+
+    Vec L = dirALuz.normalizar();
+
+    Rayo shadowRay(hit.punto + hit.normal * 0.001, dirALuz);
+
+    infoImpacto hitSombra;
+
+    hitSombra.t = 999999;
+
+    bool enSombra = false;
+
+    double distanciaLuz = dirALuz.largo();
+
+    for (int i = 0; i < escena.cantidadObjetos; i++)
+    {
+        if (escena.objetos[i] == objetoImpactado)
+            continue;
+
+        if (escena.objetos[i]->interseccion(shadowRay, hitSombra) && hitSombra.t < distanciaLuz)
+        {
+            enSombra = true;
+        }
+    }
+
+    if (enSombra)
+    {
+        return Color(0, 0, 0);
+    }
+
+    double intensidad = n.productoEscalar(L);
+
+    if (intensidad < 0)
+        intensidad = 0;
+
+    Color c(intensidad, intensidad, intensidad);
+
+    return c;
+}
+
+void renderizar(Escena& escena, Framebuffer& fb)
+{
+    for (int y = 0; y < fb.height; y++)
+    {
+        for (int x = 0; x < fb.width; x++)
+        {
+            Rayo r = escena.cam.generarRayo(x, y);
+
+            Color c = traceRay(escena, r);
+
+            fb.setPixel(x, y, c);
+        }
+    }
+}
+
 int main(int argc, char* argv[])
 {
     FreeImage_Initialise();
 
     int width = 800;
+
     int height = 600;
 
     Framebuffer fb(width, height);
 
-    Camara cam;
+    Escena escena;
 
-    Material mat;
+    cargarEscena(escena);
 
-    Esfera esfera1(Vec(1, 1, -5),1,mat);
-    Esfera esfera2(Vec(-1, -1, -5),1,mat);
-    Esfera esfera3(Vec(0, 0, -4),0.5,mat);
+    renderizar(escena, fb);
 
-    Objeto* objetos[3];
+    guardarImagen(fb, "imagen.png");
 
-    objetos[0] = &esfera1;
-    objetos[1] = &esfera2;
-    objetos[2] = &esfera3;
-
-    Vec luz = Vec(3, 3, 3).normalizar();
-    Vec luzPos = Vec(3, 3, 3);
-
-    for (int y = 0; y < height; y++)
-    {
-        for (int x = 0; x < width; x++)
-        {
-            Rayo r =  cam.generarRayo(x, y);
-
-            infoImpacto hit;
-
-            hit.t = 999999;
-
-            bool huboImpacto = false;
-
-            for (int i = 0; i < 3; i++)
-            {
-                if (objetos[i]->interseccion(r, hit))
-                {
-                    huboImpacto = true;
-                }
-            }
-
-            if (huboImpacto)
-            {
-                Vec n = hit.normal;
-                Vec dirALuz = luzPos - hit.punto;
-
-                Rayo shadowRay = Rayo(hit.punto,dirALuz);
-                infoImpacto hitSombra;
-                hitSombra.t = 999999;
-                bool enSombra = false;
-
-                for (int i = 0; i < 3; i++)
-                {
-                    if (objetos[i]->interseccion(shadowRay, hitSombra))
-                    {
-                        enSombra = true;
-                    }
-                }
-
-                if (enSombra)
-                {
-                    fb.setPixel(x, y, Color(0, 0, 0));
-                }
-                else {
-                    double intensidad = n.productoEscalar(luz);
-
-                    if (intensidad < 0)
-                        intensidad = 0;
-
-                    Color c(intensidad, intensidad, intensidad);
-
-                    fb.setPixel(x, y, c);
-                }
-
-                
-            }
-            else
-            {
-                fb.setPixel(x,y,Color(0, 0, 0));
-            }
-        }
-    }
-    guardarImagen(fb,"output.png");
     FreeImage_DeInitialise();
+
     return 0;
 }
 
 
 
-// =============================
-// WHITTED RAY TRACER - ESQUELETO
-// =============================
 
-//int main(int argc, char* argv[]) {
-//    Camara cam;
-//
-//    //cargarEscenaXML();
-//
-//    Material mat;
-//    Esfera esfera(Vec(0, 0, -5),1.0,mat);
-//    
-//
-//    //inicializarFramebuffer();
-//
-//    renderizar();
-//
-//    guardarImagen();
-//    return 0
-//}
-//
-//
-//
-//
-//
-//// ===================================
-//// RENDER PRINCIPAL
-//// ===================================
-//
-//void renderizar()
-//{
-//    for (int y = 0; y < cam.height; y++)
-//    {
-//        for (int x = 0; x < cam.width; x++)
-//        {
-//        Rayo r = cam.generarRayo(x, y);
-//
-//        Color c = traceRay(r, 0);
-//
-//        framebuffer[x][y] = c;
-//    }
-//}
-//
-//
 //
 //// ===================================
 //// TRACE RAY (NUCLEO DEL RAY TRACER)
@@ -647,141 +683,5 @@ int main(int argc, char* argv[])
 //    return finalColor;
 //}
 //
-//
-//
-//// ===================================
-//// ESCENA
-//// ===================================
-//
-//Scene
-//{
-//    vector<Object*> objects;
-//
-//    vector<Light> lights;
-//
-//    Camera camera;
-//
-//
-//
-//    bool intersectar(Rayo r, infoImpacto& impacto)
-//    {
-//        buscar la interseccion mas cercana
-//    }
-//
-//
-//
-//    bool hayInterseccion(Rayo r)
-//    {
-//        usado para sombras
-//    }
-//};
-
-
-
-// ===================================
-// OBJETO ABSTRACTO
-// ===================================
-
-
-
-// ===================================
-// OBJETOS GEOMETRICOS
-// ===================================
-
-
-
-
-
-/*
-
-
-
-class Triangle : public Object
-{
-    Vec v0, v1, v2;
-
-    intersect(...)
-};
-
-
-
-class Cylinder : public Object
-{
-    ...
-};*/
-
-
-
-// ===================================
-// INFO DE IMPACTO
-// ===================================
-
-
-
-
-
-// ===================================
-// CAMERA
-// ===================================
-
-
-
-// ===================================
-// LUZ
-// ===================================
-
-struct Light
-{
-    Vec position;
-
-    Color color;
-
-    double intensity;
-};
-
-
-
-// ===================================
-// MATEMATICA
-// ===================================
-
-//Vec reflect(I, N)
-//{
-//    return I - N * (2 * I.productoEscalar(N));
-//}
-//
-//
-//
-//Vec3 refract(...)
-//{
-//    usar ley de Snell
-//}
-//
-//
-//
-//// ===================================
-//// XML
-//// ===================================
-//
-//cargarEscenaXML()
-//{
-//cargar:
-//    -objetos
-//        - materiales
-//        - luces
-//        - camara
-//        - resolucion
-//}
-//
-//
-//
-//// ===================================
-//// EXPORTAR IMAGEN
-//// ===================================
-//
-//guardarImagen()
-//{
-//    png / bmp
-//}
 
 
