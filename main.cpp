@@ -317,6 +317,7 @@ int main(int argc, char* argv[])
     objetos[2] = &esfera3;
 
     Vec luz = Vec(3, 3, 3).normalizar();
+    Vec luzPos = Vec(3, 3, 3);
 
     for (int y = 0; y < height; y++)
     {
@@ -341,15 +342,37 @@ int main(int argc, char* argv[])
             if (huboImpacto)
             {
                 Vec n = hit.normal;
+                Vec dirALuz = luzPos - hit.punto;
 
-                double intensidad = n.productoEscalar(luz);
+                Rayo shadowRay = Rayo(hit.punto,dirALuz);
+                infoImpacto hitSombra;
+                hitSombra.t = 999999;
+                bool enSombra = false;
 
-                if (intensidad < 0)
-                    intensidad = 0;
+                for (int i = 0; i < 3; i++)
+                {
+                    if (objetos[i]->interseccion(shadowRay, hitSombra))
+                    {
+                        enSombra = true;
+                    }
+                }
 
-                Color c(intensidad,intensidad,intensidad);
+                if (enSombra)
+                {
+                    fb.setPixel(x, y, Color(0, 0, 0));
+                }
+                else {
+                    double intensidad = n.productoEscalar(luz);
 
-                fb.setPixel(x, y, c);
+                    if (intensidad < 0)
+                        intensidad = 0;
+
+                    Color c(intensidad, intensidad, intensidad);
+
+                    fb.setPixel(x, y, c);
+                }
+
+                
             }
             else
             {
