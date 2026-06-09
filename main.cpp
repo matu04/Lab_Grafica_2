@@ -72,8 +72,8 @@ public:
     int ancho;
     int alto;
     Camara();
-    Camara::Camara(Vec posicion, Vec objetivo, Vec arriba, double fov, int ancho, int alto);
-    Rayo Camara::generarRayo(int x, int y);
+    Camara(Vec posicion, Vec objetivo, Vec arriba, double fov, int ancho, int alto);
+    Rayo generarRayo(int x, int y);
 };
 
 Camara::Camara() {
