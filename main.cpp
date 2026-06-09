@@ -292,6 +292,45 @@ public:
     }
 };
 
+class Plano : public Objeto
+{
+    Vec punto;
+    Vec normal;
+
+    Plano(Vec punto, Vec normal, Material material)
+    {
+        this->punto = punto;
+        this->normal = normal;
+        this->material = material;
+    }
+
+    bool interseccion(Rayo rayo, infoImpacto& impacto) override
+    {
+        const double EPSILON = 0.000001;
+
+        double escalarRayoNPlano = rayo.direccion.productoEscalar(normal);
+
+        if (abs(escalarRayoNPlano) < EPSILON)
+            return false;
+        
+        //Dado un punto x para que este en el plano, se debe cumplir (x - punto del plano) productoEscalar normal = 0//
+        double t = (punto - rayo.origen).productoEscalar(normal) / escalarRayoNPlano;
+
+        if (t <= EPSILON)
+            return false;
+
+        if (t >= impacto.t)
+            return false;
+
+        impacto.impacto = true;
+        impacto.t = t;
+        impacto.punto = rayo.origen + rayo.direccion * t;
+        impacto.normal = normal;
+        impacto.material = material;
+
+        return true;
+    }
+};
 
 int main(int argc, char* argv[])
 {
@@ -653,13 +692,7 @@ int main(int argc, char* argv[])
 
 
 
-/*class Plane : public Object
-{
-    Vec point;
-    Vec normal;
-
-    intersect(...)
-};
+/*
 
 
 
