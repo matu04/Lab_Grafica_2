@@ -336,9 +336,9 @@ public:
 class Triangulo : public Objeto
 {
 public:
-    Vec3 v0, v1, v2;
+    Vec v0, v1, v2;
 
-    Triangulo(Vec3 v0, Vec3 v1, Vec3 v2, Material material)
+    Triangulo(Vec v0, Vec v1, Vec v2, Material material)
     {
         this->v0 = v0;
         this->v1 = v1;
@@ -346,19 +346,19 @@ public:
         this->material = material;
     }
 
-    bool interseccion(Ray rayo, infoImpacto& impacto) override
+    bool interseccion(Rayo rayo, infoImpacto& impacto) override
     {
         const double EPSILON = 0.000001;
 
         //Punto dentro del triangulo como P = v0 + u * (v1 - v0) + v * (v2 - v0)
         // Donde u >= 0; v >= 0; u + v <= 1//
-        Vec3 lado1 = v1 - v0;
-        Vec3 lado2 = v2 - v0;
+        Vec lado1 = v1 - v0;
+        Vec lado2 = v2 - v0;
 
         //Considerando un punto de un rayo se llega a: origen - v0 = u lado1 + v lado2 - t direccion//
 
         //vectorAux1 corresponde al determinante del sistema//
-        Vec3 vectorAux1 = rayo.direccion.productoVectorial(lado2);
+        Vec vectorAux1 = rayo.direccion.productoVectorial(lado2);
         double escalarLadoVectorAux = lado1.productoEscalar(vectorAux1);
 
         //Chequea si el rayo es paralelo//
@@ -368,13 +368,13 @@ public:
         double invEscalarLVA = 1.0 / escalarLadoVectorAux;
 
         //Cramer//
-        Vec3 vectorV0Origen = rayo.origen - v0;
+        Vec vectorV0Origen = rayo.origen - v0;
         double u = invEscalarLVA * vectorV0Origen.productoEscalar(vectorAux1);
 
         if (u < 0.0 || u > 1.0)
             return false;
 
-        Vec3 vectorAux2 = vectorV0Origen.productoVectorial(lado1);
+        Vec vectorAux2 = vectorV0Origen.productoVectorial(lado1);
         double v = invEscalarLVA * rayo.direccion.productoEscalar(vectorAux2);
 
         if (v < 0.0 || u + v > 1.0)
@@ -435,6 +435,8 @@ void cargarEscena(Escena& escena)
     Esfera* esfera2 = new Esfera(Vec(-1, -1, -5), 1, mat);
     Esfera* esfera3 = new Esfera(Vec(0, 0, -4), 0.5, mat);
 
+    Triangulo* triangulo1 = new Triangulo(Vec(-1, -1, -4),Vec(1, -1, -4),Vec(0, 1, -4), mat);
+
     Material matPiso; matPiso.diffuse = Color(1, 1, 1);
     Material matTecho; matTecho.diffuse = Color(1, 1, 1);
     Material matIzquierda; matIzquierda.diffuse = Color(1, 0, 0);
@@ -451,6 +453,8 @@ void cargarEscena(Escena& escena)
     escena.agregarObjeto(esfera2);
     escena.agregarObjeto(esfera3);
 
+    escena.agregarObjeto(triangulo1);
+    
     escena.agregarObjeto(piso);
     escena.agregarObjeto(techo);
     escena.agregarObjeto(izquierda);
