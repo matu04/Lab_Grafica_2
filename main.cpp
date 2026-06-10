@@ -398,6 +398,96 @@ public:
     }
 };
 
+class Cilindro : public Objeto
+{
+public:
+    Vec centro;
+    double radio;
+    double altura;
+
+    Cilindro(Vec centro, double radio, double altura, Material material)
+    {
+        this->centro = centro;
+        this->radio = radio;
+        this->altura = altura;
+        this->material = material;
+    }
+
+    bool interseccion(Rayo rayo, infoImpacto& impacto) override
+    {
+        const double EPSILON = 0.000001;
+
+        //Para los laterales asumimos que el cilindro es infinito en prinicipio y paralelo a el eje y//
+        double dx = rayo.direccion.x;
+        double dz = rayo.direccion.z;
+
+        //Origen del rayo relativo al centro del cilindro//
+        double ox = rayo.origen.x - centro.x;
+        double oz = rayo.origen.z - centro.z;
+
+        //Consideramos sustitucion de punto del rayo en (x - centro.x)^2 + (z - centro.z)^2 = radio^2; similar a esfera//
+        double a = dx * dx + dz * dz;
+        double b = 2.0 * (ox * dx + oz * dz);
+        double c = ox * ox + oz * oz - radio * radio;
+
+        //Caso rayo paralelo a la pared//
+        if (abs(a) < EPSILON)
+            return false;
+
+        double discriminante = b * b - 4.0 * a * c;
+
+        if (discriminante < 0)
+            return false;
+
+        double raiz = sqrt(discriminante);
+
+        //Entrada y salida//
+        double t1 = (-b - raiz) / (2.0 * a);
+        double t2 = (-b + raiz) / (2.0 * a);
+
+        double mitadAltura = altura / 2.0;
+        double yMin = centro.y - mitadAltura;
+        double yMax = centro.y + mitadAltura;
+
+        double tElegido = 1e30;
+        Vec puntoElegido;
+
+        if (t1 > EPSILON)
+        {
+            Vec punto = rayo.origen + rayo.direccion * t1;
+            if (punto.y >= yMin && punto.y <= yMax)
+            {
+                tElegido = t1;
+                puntoElegido = punto;
+            }
+        }
+
+        if (t2 > EPSILON && t2 < tElegido)
+        {
+            Vec punto = rayo.origen + rayo.direccion * t2;
+            if (punto.y >= yMin && punto.y <= yMax)
+            {
+                tElegido = t2;
+                puntoElegido = punto;
+            }
+        }
+
+        if (tElegido == 1e30)
+            return false;
+
+        if (tElegido >= impacto.t)
+            return false;
+
+        impacto.impacto = true;
+        impacto.t = tElegido;
+        impacto.punto = puntoElegido;
+        impacto.normal = Vec(puntoElegido.x - centro.x, 0, puntoElegido.z - centro.z).normalizar();
+        impacto.material = material;
+
+        return true;
+    }
+};
+
 class Escena
 {
 public:
