@@ -1,6 +1,9 @@
 #include <iostream>
 #include "FreeImage.h"
 #include <cmath>
+#include "tinyxml2.h"
+
+using namespace tinyxml2;
 
 const double PI = 3.14159265358979323846;
 
@@ -576,75 +579,108 @@ public:
 
 void cargarEscena(Escena& escena)
 {
-    Material mat; 
-    mat.diffuse = Color(1, 1, 1);
-    mat.specular = Color(1,1,1);
-    mat.shininess = 32;
-    mat.reflectivity = 0.0;
+    XMLDocument doc;
 
-    Material matReflejante;
-    matReflejante.diffuse = Color(1,1,1);
-    matReflejante.specular = Color(1,1,1);
-    matReflejante.shininess = 32;
-    matReflejante.reflectivity = 0.5;
+    if (doc.LoadFile("escena.xml") == XML_SUCCESS)
+    {
+        std::cout << "XML cargado correctamente\n";
+    }
+    else
+    {
+        std::cout << "Error cargando XML\n";
+        exit(1);
+    }
 
-    Esfera* esfera1 = new Esfera(Vec(1, 1, -5), 1, mat);
-    Esfera* esfera2 = new Esfera(Vec(-1, -1, -5), 1, mat);
-    Esfera* esfera3 = new Esfera(Vec(0, 0, -4), 0.5, matReflejante);
+    XMLElement* root = doc.FirstChildElement("scene");
 
-    Triangulo* triangulo1 = new Triangulo(Vec(-1, -1, -4),Vec(1, -1, -4),Vec(0, 1, -4), mat);
+    XMLElement* resolution = root->FirstChildElement("resolution");
 
-    Material matPiso; 
-    matPiso.diffuse = Color(1, 1, 1);
-    matPiso.specular = Color(0,0,0);
-    matPiso.shininess = 0;
-    matPiso.reflectivity = 0;
+    int width = resolution->IntAttribute("width");
+    int height = resolution->IntAttribute("height");
 
-    Material matTecho; 
-    matTecho.diffuse = Color(1, 1, 1);
-    matTecho.specular = Color(0,0,0);
-    matTecho.shininess = 0;
-    matTecho.reflectivity = 0;
+    XMLElement* camera = root->FirstChildElement("camera");
 
-    Material matIzquierda; 
-    matIzquierda.diffuse = Color(1, 0, 0);
-    matIzquierda.specular = Color(1,1,1);
-    matIzquierda.shininess = 32;
-    matIzquierda.reflectivity = 0;
+    double px = camera->DoubleAttribute("px");
+    double py = camera->DoubleAttribute("py");
+    double pz = camera->DoubleAttribute("pz");
 
-    Material matDerecha; 
-    matDerecha.diffuse = Color(0, 1, 0);
-    matDerecha.specular = Color(1,1,1);
-    matDerecha.shininess = 32;
-    matDerecha.reflectivity = 0;
+    double lx = camera->DoubleAttribute("lx");
+    double ly = camera->DoubleAttribute("ly");
+    double lz = camera->DoubleAttribute("lz");
 
-    Material matFondo; 
-    matFondo.diffuse = Color(1, 1, 1);
-    matFondo.specular = Color(0,0,0);
-    matFondo.shininess = 0;
-    matFondo.reflectivity = 0;
+    double upx = camera->DoubleAttribute("upx");
+    double upy = camera->DoubleAttribute("upy");
+    double upz = camera->DoubleAttribute("upz");
 
-    Plano* piso = new Plano(Vec(0, -2, 0), Vec(0, 1, 0), matPiso);
-    Plano* techo = new Plano(Vec(0, 2, 0), Vec(0, -1, 0), matTecho);
-    Plano* izquierda = new Plano(Vec(-3, 0, 0), Vec(1, 0, 0), matIzquierda);
-    Plano* derecha = new Plano(Vec(3, 0, 0), Vec(-1, 0, 0), matDerecha);
-    Plano* fondo = new Plano(Vec(0, 0, -10), Vec(0, 0, 1), matFondo);
+    double fov = camera->DoubleAttribute("fov");
 
-    escena.agregarObjeto(esfera1);
-    escena.agregarObjeto(esfera2);
-    escena.agregarObjeto(esfera3);
+    escena.cam = Camara(Vec(px, py, pz), Vec(lx, ly, lz), Vec(upx, upy, upz), fov, width, height);
 
-    escena.agregarObjeto(triangulo1);
-    
-    escena.agregarObjeto(piso);
-    escena.agregarObjeto(techo);
-    escena.agregarObjeto(izquierda);
-    escena.agregarObjeto(derecha);
-    escena.agregarObjeto(fondo);
+    XMLElement* light = root->FirstChildElement("light");
 
-    escena.cam = Camara();
+    double lxPos = light->DoubleAttribute("x");
+    double lyPos = light->DoubleAttribute("y");
+    double lzPos = light->DoubleAttribute("z");
 
-    escena.luzPos = Vec(0, 1, -3);
+    escena.luzPos = Vec(lxPos, lyPos, lzPos);
+
+    for (XMLElement* sphere = root->FirstChildElement("sphere"); sphere != nullptr; sphere = sphere->NextSiblingElement("sphere"))
+    {
+        double x = sphere->DoubleAttribute("x");
+        double y = sphere->DoubleAttribute("y");
+        double z = sphere->DoubleAttribute("z");
+
+        double radius = sphere->DoubleAttribute("radius");
+
+        Material mat;
+
+        mat.diffuse = Color(sphere->DoubleAttribute("dr"), sphere->DoubleAttribute("dg"), sphere->DoubleAttribute("db"));
+        mat.specular = Color(sphere->DoubleAttribute("sr"), sphere->DoubleAttribute("sg"), sphere->DoubleAttribute("sb"));
+        mat.shininess = sphere->DoubleAttribute("shininess");
+        mat.reflectivity = sphere->DoubleAttribute("reflectivity");
+
+        Esfera* e = new Esfera(Vec(x, y, z), radius, mat);
+
+        escena.agregarObjeto(e);
+    }
+    for (XMLElement* triangle = root->FirstChildElement("triangle"); triangle != nullptr; triangle = triangle->NextSiblingElement("triangle"))
+    {
+        Vec v0(triangle->DoubleAttribute("v0x"), triangle->DoubleAttribute("v0y"), triangle->DoubleAttribute("v0z"));
+        Vec v1(triangle->DoubleAttribute("v1x"), triangle->DoubleAttribute("v1y"), triangle->DoubleAttribute("v1z"));
+        Vec v2(triangle->DoubleAttribute("v2x"), triangle->DoubleAttribute("v2y"), triangle->DoubleAttribute("v2z"));
+
+        Material mat;
+
+        mat.diffuse = Color(triangle->DoubleAttribute("dr"), triangle->DoubleAttribute("dg"), triangle->DoubleAttribute("db"));
+        mat.specular = Color(triangle->DoubleAttribute("sr"), triangle->DoubleAttribute("sg"), triangle->DoubleAttribute("sb"));
+        mat.shininess = triangle->DoubleAttribute("shininess");
+        mat.reflectivity = triangle->DoubleAttribute("reflectivity");
+
+        Triangulo* t = new Triangulo(v0, v1, v2, mat);
+
+        escena.agregarObjeto(t);
+    }
+    for (XMLElement* plane = root->FirstChildElement("plane"); plane != nullptr; plane = plane->NextSiblingElement("plane"))
+    {
+        double px = plane->DoubleAttribute("px");
+        double py = plane->DoubleAttribute("py");
+        double pz = plane->DoubleAttribute("pz");
+
+        double nx = plane->DoubleAttribute("nx");
+        double ny = plane->DoubleAttribute("ny");
+        double nz = plane->DoubleAttribute("nz");
+
+        Material mat;
+
+        mat.diffuse = Color(plane->DoubleAttribute("dr"), plane->DoubleAttribute("dg"), plane->DoubleAttribute("db"));
+        mat.specular = Color(plane->DoubleAttribute("sr"), plane->DoubleAttribute("sg"), plane->DoubleAttribute("sb"));
+        mat.shininess = plane->DoubleAttribute("shininess");
+        mat.reflectivity = plane->DoubleAttribute("reflectivity");
+
+        Plano* p = new Plano(Vec(px, py, pz), Vec(nx, ny, nz), mat);
+
+        escena.agregarObjeto(p);
+    }
 }
 Vec reflect(const Vec& I, const Vec& N){ // I es el vector incidente y N es la normal de la superficie, retorna el vector reflejado//
     return I - N * (2.0 * I.productoEscalar(N));
