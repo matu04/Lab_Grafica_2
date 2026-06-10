@@ -521,15 +521,27 @@ void cargarEscena(Escena& escena)
 {
     XMLDocument doc;
 
-    if (doc.LoadFile("escena.xml") == XML_SUCCESS)
-    {
-        std::cout << "XML cargado correctamente\n";
-    }
-    else
-    {
-        std::cout << "Error cargando XML\n";
-        //exit(1);
-    }
+    #ifdef _WIN32
+        if (doc.LoadFile("../escena.xml") == XML_SUCCESS)
+        {
+            std::cout << "XML cargado correctamente\n";
+        }
+        else
+        {
+            std::cout << "Error cargando XML\n";
+            exit(1);
+        }
+    #else
+        if (doc.LoadFile("escena.xml") == XML_SUCCESS)
+        {
+            std::cout << "XML cargado correctamente\n";
+        }
+        else
+        {
+            std::cout << "Error cargando XML\n";
+            exit(1);
+        }
+    #endif
 
     XMLElement* root = doc.FirstChildElement("scene");
     if (!root) {
@@ -808,7 +820,12 @@ int main(int argc, char* argv[]){
 
     renderizar(escena, fb);
 
-    guardarImagen(fb, "imagen.png");
+
+    #ifdef _WIN32
+        guardarImagen(fb, "../imagen.png");
+    #else
+        guardarImagen(fb, "imagen.png");
+    #endif
 
     FreeImage_DeInitialise();
 

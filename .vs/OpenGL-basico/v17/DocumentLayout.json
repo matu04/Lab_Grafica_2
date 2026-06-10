@@ -1,0 +1,62 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\Mauricio\\Desktop\\Lab_Grafica_2\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{253970C5-4794-4D0E-AC65-24BFFE03C8A7}|OpenGL-basico\\OpenGL-basico.vcxproj|C:\\Users\\Mauricio\\Desktop\\Lab_Grafica_2\\main.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{253970C5-4794-4D0E-AC65-24BFFE03C8A7}|OpenGL-basico\\OpenGL-basico.vcxproj|solutionrelative:main.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{253970C5-4794-4D0E-AC65-24BFFE03C8A7}|OpenGL-basico\\OpenGL-basico.vcxproj|C:\\Users\\Mauricio\\Desktop\\Lab_Grafica_2\\OpenGL-basico\\escena.xml||{FA3CD31E-987B-443A-9B81-186104E8DAC1}",
+      "RelativeMoniker": "D:0:0:{253970C5-4794-4D0E-AC65-24BFFE03C8A7}|OpenGL-basico\\OpenGL-basico.vcxproj|solutionrelative:OpenGL-basico\\escena.xml||{FA3CD31E-987B-443A-9B81-186104E8DAC1}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 3,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{d78612c7-9962-4b83-95d9-268046dad23a}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{34e76e81-ee4a-11d0-ae2e-00a0c90fffc3}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "escena.xml",
+              "DocumentMoniker": "C:\\Users\\Mauricio\\Desktop\\Lab_Grafica_2\\OpenGL-basico\\escena.xml",
+              "RelativeDocumentMoniker": "OpenGL-basico\\escena.xml",
+              "ToolTip": "C:\\Users\\Mauricio\\Desktop\\Lab_Grafica_2\\OpenGL-basico\\escena.xml",
+              "RelativeToolTip": "OpenGL-basico\\escena.xml",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABEAAAACAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003576|",
+              "WhenOpened": "2026-06-10T18:23:07.26Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "main.cpp",
+              "DocumentMoniker": "C:\\Users\\Mauricio\\Desktop\\Lab_Grafica_2\\main.cpp",
+              "RelativeDocumentMoniker": "main.cpp",
+              "ToolTip": "C:\\Users\\Mauricio\\Desktop\\Lab_Grafica_2\\main.cpp",
+              "RelativeToolTip": "main.cpp",
+              "ViewState": "AgIAACwDAAAAAAAAAAAgwDkDAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2026-06-08T20:46:55.286Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
