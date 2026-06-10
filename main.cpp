@@ -121,15 +121,15 @@ class Color{
         Color() : r(0), g(0), b(0) {}
         Color(double r, double g, double b) : r(r), g(g), b(b) {}
 
-        Color operator+(const Color& c){
+        Color operator+(const Color& c) const {
             return Color(r + c.r, g + c.g, b + c.b);
         }
 
-        Color operator*(const Color& c){
+        Color operator*(const Color& c) const {
             return Color(r * c.r, g * c.g, b * c.b);
         }
 
-        Color operator*(double s){
+        Color operator*(double s) const {
             return Color(r * s, g * s, b * s);
         }
 
@@ -429,19 +429,53 @@ public:
 
 void cargarEscena(Escena& escena)
 {
-    Material mat; mat.diffuse = Color(1, 1, 1);
+    Material mat; 
+    mat.diffuse = Color(1, 1, 1);
+    mat.specular = Color(1,1,1);
+    mat.shininess = 32;
+    mat.reflectivity = 0.0;
+
+    Material matReflejante;
+    matReflejante.diffuse = Color(1,1,1);
+    matReflejante.specular = Color(1,1,1);
+    matReflejante.shininess = 32;
+    matReflejante.reflectivity = 0.5;
 
     Esfera* esfera1 = new Esfera(Vec(1, 1, -5), 1, mat);
     Esfera* esfera2 = new Esfera(Vec(-1, -1, -5), 1, mat);
-    Esfera* esfera3 = new Esfera(Vec(0, 0, -4), 0.5, mat);
+    Esfera* esfera3 = new Esfera(Vec(0, 0, -4), 0.5, matReflejante);
 
     Triangulo* triangulo1 = new Triangulo(Vec(-1, -1, -4),Vec(1, -1, -4),Vec(0, 1, -4), mat);
 
-    Material matPiso; matPiso.diffuse = Color(1, 1, 1);
-    Material matTecho; matTecho.diffuse = Color(1, 1, 1);
-    Material matIzquierda; matIzquierda.diffuse = Color(1, 0, 0);
-    Material matDerecha; matDerecha.diffuse = Color(0, 1, 0);
-    Material matFondo; matFondo.diffuse = Color(1, 1, 1);
+    Material matPiso; 
+    matPiso.diffuse = Color(1, 1, 1);
+    matPiso.specular = Color(0,0,0);
+    matPiso.shininess = 0;
+    matPiso.reflectivity = 0;
+
+    Material matTecho; 
+    matTecho.diffuse = Color(1, 1, 1);
+    matTecho.specular = Color(0,0,0);
+    matTecho.shininess = 0;
+    matTecho.reflectivity = 0;
+
+    Material matIzquierda; 
+    matIzquierda.diffuse = Color(1, 0, 0);
+    matIzquierda.specular = Color(1,1,1);
+    matIzquierda.shininess = 32;
+    matIzquierda.reflectivity = 0;
+
+    Material matDerecha; 
+    matDerecha.diffuse = Color(0, 1, 0);
+    matDerecha.specular = Color(1,1,1);
+    matDerecha.shininess = 32;
+    matDerecha.reflectivity = 0;
+
+    Material matFondo; 
+    matFondo.diffuse = Color(1, 1, 1);
+    matFondo.specular = Color(0,0,0);
+    matFondo.shininess = 0;
+    matFondo.reflectivity = 0;
 
     Plano* piso = new Plano(Vec(0, -2, 0), Vec(0, 1, 0), matPiso);
     Plano* techo = new Plano(Vec(0, 2, 0), Vec(0, -1, 0), matTecho);
@@ -465,6 +499,9 @@ void cargarEscena(Escena& escena)
 
     escena.luzPos = Vec(0, 1, -3);
 }
+Vec reflect(const Vec& I, const Vec& N){ // I es el vector incidente y N es la normal de la superficie, retorna el vector reflejado//
+    return I - N * (2.0 * I.productoEscalar(N));
+}
 
 bool intersectarEscena(Escena& escena, Rayo rayo, infoImpacto& hit, Objeto*& objetoImpactado){
     hit.t = 999999;
@@ -480,12 +517,18 @@ bool intersectarEscena(Escena& escena, Rayo rayo, infoImpacto& hit, Objeto*& obj
     return hit.impacto;
 }
 
+Color traceRay(Escena& escena, Rayo r, int depth);
+
 Color shade(Escena& escena,infoImpacto& hit,Objeto* objetoImpactado,Rayo r,int depth){
     Vec n = hit.normal;
 
     Vec dirALuz = escena.luzPos - hit.punto;
 
     Vec L = dirALuz.normalizar();
+
+    Vec V = r.direccion.opuesto().normalizar();
+
+    Vec R = reflect(L.opuesto(),hit.normal);
 
     Rayo shadowRay(hit.punto + hit.normal * 0.001, dirALuz);
 
@@ -507,13 +550,33 @@ Color shade(Escena& escena,infoImpacto& hit,Objeto* objetoImpactado,Rayo r,int d
         }
     }
     if (enSombra){
-        return Color(0, 0, 0);
+        return hit.material.diffuse * 0.1;
     }
     double intensidad = n.productoEscalar(L);
     if (intensidad < 0){
         intensidad = 0;
     }
-    return hit.material.diffuse * intensidad;
+    Color ambiente = hit.material.diffuse * 0.1;
+    Color difuso = hit.material.diffuse * intensidad;
+
+    double spec = R.productoEscalar(V);
+    if (spec < 0){
+        spec = 0;
+    }
+    spec = pow(spec,hit.material.shininess);
+    Color especular = hit.material.specular * spec;
+
+    Color colorFinal = ambiente + difuso + especular;
+    if (hit.material.reflectivity > 0){
+        Vec direccionReflejada = reflect(r.direccion, hit.normal);
+
+        Rayo reflectedRay(hit.punto + hit.normal * 0.001, direccionReflejada);
+
+        Color colorReflejado = traceRay(escena, reflectedRay, depth + 1);
+
+        colorFinal = colorFinal + colorReflejado * hit.material.reflectivity;
+    }
+    return colorFinal;
 }
 
 Color traceRay(Escena& escena, Rayo r, int depth){
