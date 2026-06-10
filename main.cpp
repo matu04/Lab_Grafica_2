@@ -6,6 +6,7 @@
 using namespace tinyxml2;
 
 const double PI = 3.14159265358979323846;
+const double EPSILON = 0.0001;
 
 class Vec {
 public:
@@ -253,7 +254,6 @@ public:
 
     bool interseccion(Rayo rayo, infoImpacto& impacto) override
     {
-        const double EPSILON = 0.000001;
 
         Vec vectorEsferaCamara = rayo.origen - centro;
 
@@ -274,7 +274,6 @@ public:
 
         double t;
 
-        //Chequeo parte del rayo verdadera//
         if (t1 > EPSILON)
             t = t1;
         else if (t2 > EPSILON)
@@ -311,7 +310,6 @@ public:
 
     bool interseccion(Rayo rayo, infoImpacto& impacto) override
     {
-        const double EPSILON = 0.000001;
 
         double escalarRayoNPlano = rayo.direccion.productoEscalar(normal);
 
@@ -352,7 +350,6 @@ public:
 
     bool interseccion(Rayo rayo, infoImpacto& impacto) override
     {
-        const double EPSILON = 0.000001;
 
         //Punto dentro del triangulo como P = v0 + u * (v1 - v0) + v * (v2 - v0)
         // Donde u >= 0; v >= 0; u + v <= 1//
@@ -419,19 +416,8 @@ public:
 
     bool interseccion(Rayo rayo, infoImpacto& impacto) override
     {
-        const double EPSILON = 0.000001;
 
-        double mitadAltura = altura / 2.0;
-        double yMin = centro.y - mitadAltura;
-        double yMax = centro.y + mitadAltura;
-
-        double tElegido = 1e30;
-        Vec puntoElegido;
-        Vec normalElegida;
-
-        //Lateral//
-
-        //Para los laterales asumimos que el cilindro es infinito en prinicipio y paralelo al eje y//
+        //Para los laterales asumimos que el cilindro es infinito en prinicipio y paralelo a el eje y//
         double dx = rayo.direccion.x;
         double dz = rayo.direccion.z;
 
@@ -445,92 +431,46 @@ public:
         double c = ox * ox + oz * oz - radio * radio;
 
         //Caso rayo paralelo a la pared//
-        if (abs(a) > EPSILON)
+        if (abs(a) < EPSILON)
+            return false;
+
+        double discriminante = b * b - 4.0 * a * c;
+
+        if (discriminante < 0)
+            return false;
+
+        double raiz = sqrt(discriminante);
+
+        //Entrada y salida//
+        double t1 = (-b - raiz) / (2.0 * a);
+        double t2 = (-b + raiz) / (2.0 * a);
+
+        double mitadAltura = altura / 2.0;
+        double yMin = centro.y - mitadAltura;
+        double yMax = centro.y + mitadAltura;
+
+        double tElegido = 1e30;
+        Vec puntoElegido;
+
+        if (t1 > EPSILON)
         {
-            double discriminante = b * b - 4.0 * a * c;
-
-            if (discriminante >= 0)
+            Vec punto = rayo.origen + rayo.direccion * t1;
+            if (punto.y >= yMin && punto.y <= yMax)
             {
-                double raiz = sqrt(discriminante);
-
-                //Entrada y salida//
-                double t1 = (-b - raiz) / (2.0 * a);
-                double t2 = (-b + raiz) / (2.0 * a);
-
-                if (t1 > EPSILON)
-                {
-                    Vec punto = rayo.origen + rayo.direccion * t1;
-                    if (punto.y >= yMin && punto.y <= yMax)
-                    {
-                        tElegido = t1;
-                        puntoElegido = punto;
-                        normalElegida = Vec(punto.x - centro.x, 0, punto.z - centro.z).normalizar();
-                    }
-                }
-
-                if (t2 > EPSILON && t2 < tElegido)
-                {
-                    Vec punto = rayo.origen + rayo.direccion * t2;
-                    if (punto.y >= yMin && punto.y <= yMax)
-                    {
-                        tElegido = t2;
-                        puntoElegido = punto;
-                        normalElegida = Vec(punto.x - centro.x, 0, punto.z - centro.z).normalizar();
-                    }
-                }
-            }
-        }
-        
-        //Fin lateral//
-
-        //Tapas//
-
-        if (abs(rayo.direccion.y) > EPSILON)
-        {
-            //Tapa de abajo//
-            //Pienso tapas como planos primero, y calculo interseccion solo en y//
-            double tInferior = (yMin - rayo.origen.y) / rayo.direccion.y;
-
-            if (tInferior > EPSILON && tInferior < tElegido)
-            {
-                Vec punto = rayo.origen + rayo.direccion * tInferior;
-
-                double dxTapa = punto.x - centro.x;
-                double dzTapa = punto.z - centro.z;
-
-                //Distancia entre dos puntos, centro en este caso//
-                double distanciaCuadrada = dxTapa * dxTapa + dzTapa * dzTapa;
-
-                if (distanciaCuadrada <= radio * radio)
-                {
-                    tElegido = tInferior;
-                    puntoElegido = punto;
-                    normalElegida = Vec(0, -1, 0);
-                }
-            }
-
-            //Tapa de ariba//
-            double tSuperior = (yMax - rayo.origen.y) / rayo.direccion.y;
-
-            if (tSuperior > EPSILON && tSuperior < tElegido)
-            {
-                Vec punto = rayo.origen + rayo.direccion * tSuperior;
-
-                double dxTapa = punto.x - centro.x;
-                double dzTapa = punto.z - centro.z;
-
-                double distanciaCuadrada = dxTapa * dxTapa + dzTapa * dzTapa;
-
-                if (distanciaCuadrada <= radio * radio)
-                {
-                    tElegido = tSuperior;
-                    puntoElegido = punto;
-                    normalElegida = Vec(0, 1, 0);
-                }
+                tElegido = t1;
+                puntoElegido = punto;
             }
         }
 
-        //Fin tapas//
+        if (t2 > EPSILON && t2 < tElegido)
+        {
+            Vec punto = rayo.origen + rayo.direccion * t2;
+            if (punto.y >= yMin && punto.y <= yMax)
+            {
+                tElegido = t2;
+                puntoElegido = punto;
+            }
+        }
 
         if (tElegido == 1e30)
             return false;
@@ -541,7 +481,7 @@ public:
         impacto.impacto = true;
         impacto.t = tElegido;
         impacto.punto = puntoElegido;
-        impacto.normal = normalElegida;
+        impacto.normal = Vec(puntoElegido.x - centro.x, 0, puntoElegido.z - centro.z).normalizar();
         impacto.material = material;
 
         return true;
@@ -588,12 +528,17 @@ void cargarEscena(Escena& escena)
     else
     {
         std::cout << "Error cargando XML\n";
-        exit(1);
+        //exit(1);
     }
 
     XMLElement* root = doc.FirstChildElement("scene");
+    if (!root) {
+        std::cout << "Error: no existe <scene> en el XML\n";
+        exit(1);
+    }
 
     XMLElement* resolution = root->FirstChildElement("resolution");
+    
 
     int width = resolution->IntAttribute("width");
     int height = resolution->IntAttribute("height");
@@ -682,18 +627,58 @@ void cargarEscena(Escena& escena)
         escena.agregarObjeto(p);
     }
 }
+
 Vec reflect(const Vec& I, const Vec& N){ // I es el vector incidente y N es la normal de la superficie, retorna el vector reflejado//
     return I - N * (2.0 * I.productoEscalar(N));
 }
 
+Vec refract(const Vec& I, const Vec& N, double idr, bool& rit){ //I vector incidente, N normal en el punto de impacto, idr indice de refraccion, rit reflexion interna total, retorna el vector refractado//
+    double PEI = I.productoEscalar(N);
+    double idrI = 1.0; //indice de refraccion incidente
+    double idrT = idr; //indice de refraccion transmitido
+    Vec n = N;
+
+    rit = false;
+
+    if (PEI < 0) {
+        PEI = -PEI;
+    } else {
+        std::swap(idrI, idrT);
+        n = N.opuesto();
+    }
+
+    double eta = idrI / idrT; //factor clave de Snell, indica cuanto se desvía el rayo al entrar en el nuevo medio
+
+    double k = 1.0 - eta * eta * (1.0 - PEI * PEI);
+
+    if (k < 0) {
+        rit = true;
+        return Vec(0,0,0);
+    }
+
+    return I * eta + n * (eta * PEI - sqrt(k));
+}
+
+double fresnelSchlick(double cosi, double ior){
+    double r0 = (1.0 - ior) / (1.0 + ior);
+    r0 = r0 * r0;
+    if (cosi < 0.0) cosi = 0.0;
+    if (cosi > 1.0) cosi = 1.0;
+    return r0 + (1.0 - r0) * pow(1.0 - cosi, 5.0);
+}
+
 bool intersectarEscena(Escena& escena, Rayo rayo, infoImpacto& hit, Objeto*& objetoImpactado){
-    hit.t = 999999;
+    hit.t = 1e30;
     hit.impacto = false;
+    objetoImpactado = nullptr;
 
     for (int i = 0; i < escena.cantidadObjetos; i++){
-        if (escena.objetos[i]->interseccion(rayo, hit)){
+        infoImpacto tempHit;
+        tempHit.t = hit.t;
+
+        if (escena.objetos[i]->interseccion(rayo, tempHit)){
+            hit = tempHit;
             objetoImpactado = escena.objetos[i];
-            hit.impacto = true;
         }
     }
 
@@ -713,11 +698,7 @@ Color shade(Escena& escena,infoImpacto& hit,Objeto* objetoImpactado,Rayo r,int d
 
     Vec R = reflect(L.opuesto(),hit.normal);
 
-    Rayo shadowRay(hit.punto + hit.normal * 0.001, dirALuz);
-
-    infoImpacto hitSombra;
-
-    hitSombra.t = 999999;
+    Rayo shadowRay(hit.punto + hit.normal * EPSILON, dirALuz.normalizar());
 
     bool enSombra = false;
 
@@ -726,9 +707,10 @@ Color shade(Escena& escena,infoImpacto& hit,Objeto* objetoImpactado,Rayo r,int d
     for (int i = 0; i < escena.cantidadObjetos; i++){
         if (escena.objetos[i] == objetoImpactado)
             continue;
-
-        if (escena.objetos[i]->interseccion(shadowRay, hitSombra) && hitSombra.t < distanciaLuz)
-        {
+        infoImpacto hitSombra;
+        hitSombra.t = 1e30;
+        hitSombra.impacto = false;
+        if (escena.objetos[i]->interseccion(shadowRay, hitSombra) && hitSombra.t < distanciaLuz){
             enSombra = true;
         }
     }
@@ -750,15 +732,36 @@ Color shade(Escena& escena,infoImpacto& hit,Objeto* objetoImpactado,Rayo r,int d
     Color especular = hit.material.specular * spec;
 
     Color colorFinal = ambiente + difuso + especular;
-    if (hit.material.reflectivity > 0){
+
+    Color colorReflejado(0,0,0);
+    if (hit.material.reflectivity > 0 && depth < 5)
+    {
         Vec direccionReflejada = reflect(r.direccion, hit.normal);
 
-        Rayo reflectedRay(hit.punto + hit.normal * 0.001, direccionReflejada);
+        Rayo reflectedRay(hit.punto + hit.normal * EPSILON, direccionReflejada);
 
-        Color colorReflejado = traceRay(escena, reflectedRay, depth + 1);
-
-        colorFinal = colorFinal + colorReflejado * hit.material.reflectivity;
+        colorReflejado = traceRay(escena, reflectedRay, depth + 1);
     }
+
+    Color colorRefractado(0,0,0);
+    if (hit.material.transparency > 0)
+    {
+        bool tir;
+        Vec dirRefractada = refract(r.direccion, hit.normal, hit.material.ior, tir);
+
+        if (!tir)
+        {
+            Rayo refractedRay(hit.punto - hit.normal * EPSILON, dirRefractada);
+
+            colorRefractado = traceRay(escena, refractedRay, depth + 1);
+        }
+    }
+    Vec N = hit.normal.normalizar();
+    double cosi = fabs(V.productoEscalar(N));
+    double F = fresnelSchlick(cosi, hit.material.ior);
+    Color colorFresnel = (colorReflejado * hit.material.reflectivity) * F + (colorRefractado * hit.material.transparency) * (1.0 - F);
+    colorFinal = colorFinal + colorFresnel;
+
     return colorFinal;
 }
 
@@ -766,7 +769,7 @@ Color traceRay(Escena& escena, Rayo r, int depth){
     infoImpacto hit;
     Objeto* objetoImpactado = nullptr;
 
-    if(depth > 5){
+    if(depth >= 5){
         return Color(0, 0, 0);
     }
 
