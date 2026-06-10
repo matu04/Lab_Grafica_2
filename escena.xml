@@ -1,3 +1,243 @@
 <scene>
-    
+
+	<resolution width="800" height="600"/>
+
+	<camera
+        px="0"
+        py="0"
+        pz="0"
+
+        lx="0"
+        ly="0"
+        lz="-1"
+
+        upx="0"
+        upy="1"
+        upz="0"
+
+        fov="60"
+    />
+
+
+
+	<light
+        x="0"
+        y="1"
+        z="-3"
+    />
+
+
+
+	<sphere
+        x="1"
+        y="1"
+        z="-5"
+
+        radius="1"
+
+        dr="1"
+        dg="1"
+        db="1"
+
+        sr="1"
+        sg="1"
+        sb="1"
+
+        shininess="32"
+
+        reflectivity="0"
+    />
+
+
+
+	<sphere
+        x="-1"
+        y="-1"
+        z="-5"
+
+        radius="1"
+
+        dr="1"
+        dg="1"
+        db="1"
+
+        sr="1"
+        sg="1"
+        sb="1"
+
+        shininess="32"
+
+        reflectivity="0"
+    />
+
+
+
+	<sphere
+        x="0"
+        y="0"
+        z="-4"
+
+        radius="0.5"
+
+        dr="1"
+        dg="1"
+        db="1"
+
+        sr="1"
+        sg="1"
+        sb="1"
+
+        shininess="32"
+
+        reflectivity="0.5"
+    />
+
+
+
+	<triangle
+        v0x="-1"
+        v0y="-1"
+        v0z="-4"
+
+        v1x="1"
+        v1y="-1"
+        v1z="-4"
+
+        v2x="0"
+        v2y="1"
+        v2z="-4"
+
+        dr="1"
+        dg="1"
+        db="1"
+
+        sr="1"
+        sg="1"
+        sb="1"
+
+        shininess="32"
+
+        reflectivity="0"
+    />
+
+
+
+	<plane
+        px="0"
+        py="-2"
+        pz="0"
+
+        nx="0"
+        ny="1"
+        nz="0"
+
+        dr="1"
+        dg="1"
+        db="1"
+
+        sr="0"
+        sg="0"
+        sb="0"
+
+        shininess="0"
+
+        reflectivity="0"
+    />
+
+
+
+	<plane
+        px="0"
+        py="2"
+        pz="0"
+
+        nx="0"
+        ny="-1"
+        nz="0"
+
+        dr="1"
+        dg="1"
+        db="1"
+
+        sr="0"
+        sg="0"
+        sb="0"
+
+        shininess="0"
+
+        reflectivity="0"
+    />
+
+
+
+	<plane
+        px="-3"
+        py="0"
+        pz="0"
+
+        nx="1"
+        ny="0"
+        nz="0"
+
+        dr="1"
+        dg="0"
+        db="0"
+
+        sr="1"
+        sg="1"
+        sb="1"
+
+        shininess="32"
+
+        reflectivity="0"
+    />
+
+
+
+	<plane
+        px="3"
+        py="0"
+        pz="0"
+
+        nx="-1"
+        ny="0"
+        nz="0"
+
+        dr="0"
+        dg="1"
+        db="0"
+
+        sr="1"
+        sg="1"
+        sb="1"
+
+        shininess="32"
+
+        reflectivity="0"
+    />
+
+
+
+	<plane
+        px="0"
+        py="0"
+        pz="-10"
+
+        nx="0"
+        ny="0"
+        nz="1"
+
+        dr="1"
+        dg="1"
+        db="1"
+
+        sr="0"
+        sg="0"
+        sb="0"
+
+        shininess="0"
+
+        reflectivity="0"
+    />
+
 </scene>
