@@ -517,6 +517,66 @@ public:
     }
 };
 
+void agregarDiamante(Escena& escena, Vec centro, double escala, Material mat)
+{
+    //Tapa superior hexagono
+    Vec A0 = centro + Vec( 0.00, 0.60,  0.50) * escala;
+    Vec A1 = centro + Vec( 0.43, 0.60,  0.25) * escala;
+    Vec A2 = centro + Vec( 0.43, 0.60, -0.25) * escala;
+    Vec A3 = centro + Vec( 0.00, 0.60, -0.50) * escala;
+    Vec A4 = centro + Vec(-0.43, 0.60, -0.25) * escala;
+    Vec A5 = centro + Vec(-0.43, 0.60,  0.25) * escala;
+
+    //Hexagono central
+    Vec B0 = centro + Vec( 0.00, 0.00,  1.00) * escala;
+    Vec B1 = centro + Vec( 0.87, 0.00,  0.50) * escala;
+    Vec B2 = centro + Vec( 0.87, 0.00, -0.50) * escala;
+    Vec B3 = centro + Vec( 0.00, 0.00, -1.00) * escala;
+    Vec B4 = centro + Vec(-0.87, 0.00, -0.50) * escala;
+    Vec B5 = centro + Vec(-0.87, 0.00,  0.50) * escala;
+
+    //Punta inferior
+    Vec P = centro + Vec(0.00, -1.35, 0.00) * escala;
+
+    //Centro de la tapa
+    Vec C = centro + Vec(0.00, 0.60, 0.00) * escala;
+
+    //Tapa superior hexagonal 6 triangulos
+    escena.agregarObjeto(new Triangulo(C, A0, A1, mat));
+    escena.agregarObjeto(new Triangulo(C, A1, A2, mat));
+    escena.agregarObjeto(new Triangulo(C, A2, A3, mat));
+    escena.agregarObjeto(new Triangulo(C, A3, A4, mat));
+    escena.agregarObjeto(new Triangulo(C, A4, A5, mat));
+    escena.agregarObjeto(new Triangulo(C, A5, A0, mat));
+
+    //Corona hexagonal superior hacia hexagono central 12 triangulos
+    escena.agregarObjeto(new Triangulo(A0, B0, B1, mat));
+    escena.agregarObjeto(new Triangulo(A0, B1, A1, mat));
+
+    escena.agregarObjeto(new Triangulo(A1, B1, B2, mat));
+    escena.agregarObjeto(new Triangulo(A1, B2, A2, mat));
+
+    escena.agregarObjeto(new Triangulo(A2, B2, B3, mat));
+    escena.agregarObjeto(new Triangulo(A2, B3, A3, mat));
+
+    escena.agregarObjeto(new Triangulo(A3, B3, B4, mat));
+    escena.agregarObjeto(new Triangulo(A3, B4, A4, mat));
+
+    escena.agregarObjeto(new Triangulo(A4, B4, B5, mat));
+    escena.agregarObjeto(new Triangulo(A4, B5, A5, mat));
+
+    escena.agregarObjeto(new Triangulo(A5, B5, B0, mat));
+    escena.agregarObjeto(new Triangulo(A5, B0, A0, mat));
+
+    //Pabellon hexagono central hacia punta inferior 6 triangulos
+    escena.agregarObjeto(new Triangulo(B0, P, B1, mat));
+    escena.agregarObjeto(new Triangulo(B1, P, B2, mat));
+    escena.agregarObjeto(new Triangulo(B2, P, B3, mat));
+    escena.agregarObjeto(new Triangulo(B3, P, B4, mat));
+    escena.agregarObjeto(new Triangulo(B4, P, B5, mat));
+    escena.agregarObjeto(new Triangulo(B5, P, B0, mat));
+}
+
 void cargarEscena(Escena& escena)
 {
     XMLDocument doc;
@@ -637,6 +697,26 @@ void cargarEscena(Escena& escena)
         Plano* p = new Plano(Vec(px, py, pz), Vec(nx, ny, nz), mat);
 
         escena.agregarObjeto(p);
+    }
+    for (XMLElement* diamond = root->FirstChildElement("diamond"); diamond != nullptr; diamond = diamond->NextSiblingElement("diamond"))
+    {
+        double x = diamond->DoubleAttribute("x");
+        double y = diamond->DoubleAttribute("y");
+        double z = diamond->DoubleAttribute("z");
+
+        double escala = diamond->DoubleAttribute("scale", 1.0);
+
+        Material mat;
+
+        mat.diffuse = Color(diamond->DoubleAttribute("dr", 0.55), diamond->DoubleAttribute("dg", 0.90), diamond->DoubleAttribute("db", 1.00));
+        mat.specular = Color(diamond->DoubleAttribute("sr", 1.0), diamond->DoubleAttribute("sg", 1.0), diamond->DoubleAttribute("sb", 1.0));
+        mat.shininess = diamond->DoubleAttribute("shininess", 256.0);
+        mat.reflectivity = diamond->DoubleAttribute("reflectivity", 0.2);
+        mat.transparency = diamond->DoubleAttribute("transparency", 0.85);
+        mat.ior = diamond->DoubleAttribute("ior", 2.417);
+        mat.ambient = mat.diffuse * 0.1;
+
+        agregarDiamante(escena, Vec(x, y, z), escala, mat);
     }
 }
 
