@@ -659,7 +659,7 @@ void cargarEscena(Escena& escena)
 
     escena.cam = Camara(Vec(px, py, pz), Vec(lx, ly, lz), Vec(upx, upy, upz), fov, width, height);
 
-    for (XMLElement* light = root->FirstChildElement("lights"); light != nullptr; light = light->NextSiblingElement("lights")){
+    for (XMLElement* light = root->FirstChildElement("light"); light != nullptr; light = light->NextSiblingElement("light")){
 
         double lxPos = light->DoubleAttribute("x");
         double lyPos = light->DoubleAttribute("y");
@@ -750,6 +750,27 @@ void cargarEscena(Escena& escena)
 
         agregarDiamante(escena, Vec(x, y, z), escala, mat);
     }
+
+    for (XMLElement* cylinder = root->FirstChildElement("cylinder"); cylinder != nullptr; cylinder = cylinder->NextSiblingElement("cylinder")){
+        double x = cylinder->DoubleAttribute("x");
+        double y = cylinder->DoubleAttribute("y");
+        double z = cylinder->DoubleAttribute("z");
+        double radius = cylinder->DoubleAttribute("radius");
+        double height = cylinder->DoubleAttribute("height");
+
+        Material mat;
+
+        mat.diffuse = Color(cylinder->DoubleAttribute("dr"), cylinder->DoubleAttribute("dg"), cylinder->DoubleAttribute("db"));
+        mat.specular = Color(cylinder->DoubleAttribute("sr"), cylinder->DoubleAttribute("sg"), cylinder->DoubleAttribute("sb"));
+        mat.shininess = cylinder->DoubleAttribute("shininess");
+        mat.reflectivity = cylinder->DoubleAttribute("reflectivity");
+        mat.transparency = cylinder->DoubleAttribute("transparency", 0.0);
+        mat.ior = cylinder->DoubleAttribute("ior", 1.0);
+
+        Cilindro* c = new Cilindro(Vec(x,y,z), radius, height, mat);
+        c->grupo = escena.cantidadObjetos;
+        escena.agregarObjeto(c);
+    }
 }
 
 Vec reflect(const Vec& I, const Vec& N){ // I es el vector incidente y N es la normal de la superficie, retorna el vector reflejado//
@@ -807,6 +828,30 @@ bool intersectarEscena(Escena& escena, Rayo rayo, infoImpacto& hit, Objeto*& obj
     }
 
     return hit.impacto;
+}
+
+Color renderReflectionPixel(Escena& escena, Rayo r){
+    infoImpacto hit;
+    Objeto* obj = nullptr;
+
+    if (!intersectarEscena(escena, r, hit, obj))
+        return Color(0,0,0);
+
+    double v = hit.material.reflectivity;
+
+    return Color(v,v,v);
+}
+
+Color renderTransmissionPixel(Escena& escena, Rayo r){
+    infoImpacto hit;
+    Objeto* obj = nullptr;
+
+    if (!intersectarEscena(escena, r, hit, obj))
+        return Color(0,0,0);
+
+    double v = hit.material.transparency;
+
+    return Color(v,v,v);
 }
 
 Color traceRay(Escena& escena, Rayo r, int depth);
@@ -938,6 +983,27 @@ void renderizar(Escena& escena, Framebuffer& fb)
     }
 }
 
+void renderizarAuxiliar(Escena& escena, Framebuffer& fbReflection, Framebuffer& fbTransmission){
+    for(int y=0;y<fbReflection.height;y++)
+    {
+        for(int x=0;x<fbReflection.width;x++)
+        {
+            Rayo r =
+                escena.cam.generarRayo(x,y);
+
+            fbReflection.setPixel(
+                x,y,
+                renderReflectionPixel(escena,r)
+            );
+
+            fbTransmission.setPixel(
+                x,y,
+                renderTransmissionPixel(escena,r)
+            );
+        }
+    }
+}
+
 int main(int argc, char* argv[]){
     FreeImage_Initialise();
 
@@ -946,18 +1012,25 @@ int main(int argc, char* argv[]){
     int height = 600;
 
     Framebuffer fb(width, height);
+    Framebuffer fbReflection(width, height);
+    Framebuffer fbTransmission(width, height);
 
     Escena escena;
 
     cargarEscena(escena);
 
     renderizar(escena, fb);
+    renderizarAuxiliar(escena, fbReflection, fbTransmission);
 
 
     #ifdef _WIN32
         guardarImagen(fb, "../imagen.png");
+        guardarImagen(fbReflection, "../reflection.png");
+        guardarImagen(fbTransmission, "../transmission.png");
     #else
         guardarImagen(fb, "imagen.png");
+        guardarImagen(fbReflection, "reflection.png");
+        guardarImagen(fbTransmission, "transmission.png");
     #endif
 
     FreeImage_DeInitialise();
