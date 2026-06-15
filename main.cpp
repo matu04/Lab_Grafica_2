@@ -6,7 +6,7 @@
 using namespace tinyxml2;
 
 const double PI = 3.14159265358979323846;
-const double EPSILON = 0.0001;
+const double EPSILON = 0.01;
 
 class Vec {
 public:
@@ -115,6 +115,13 @@ Rayo Camara::generarRayo(int x, int y) {
     Vec dir = (adelante + derecha * px + arriba * py).normalizar();
     return Rayo(posicion, dir);
 }
+
+class Luz {
+public:
+    Vec posicion;
+    double intensidad;
+    Luz(Vec posicion, double intensidad) : posicion(posicion), intensidad(intensidad) {}
+};
 
 class Color{
     public:
@@ -233,6 +240,12 @@ class Objeto
 {
 public:
     Material material;
+
+    int grupo;
+
+    Objeto(){
+        grupo = -1;
+    }
 
     virtual ~Objeto() = default;
 
@@ -496,29 +509,42 @@ public:
 
     int cantidadObjetos;
 
-    Vec luzPos;
+    Luz* luces[100];
+    int cantidadLuces;
 
     Camara cam;
 
 
 
-    Escena()
-    {
+    Escena(){
         cantidadObjetos = 0;
+        cantidadLuces = 0;
     }
 
 
 
-    void agregarObjeto(Objeto* obj)
-    {
+    void agregarObjeto(Objeto* obj){
         objetos[cantidadObjetos] = obj;
 
         cantidadObjetos++;
     }
+
+    void agregarLuz(Luz* luz){
+        luces[cantidadLuces] = luz;
+        cantidadLuces++;
+    }
 };
+
+void agregarTrianguloGrupo(Escena& escena, Vec a, Vec b, Vec c, Material mat, int grupo){
+    Triangulo* t =
+    new Triangulo(a,b,c,mat);
+    t->grupo = grupo;
+    escena.agregarObjeto(t);
+}
 
 void agregarDiamante(Escena& escena, Vec centro, double escala, Material mat)
 {
+    int grupoDiamante = 1000;
     //Tapa superior hexagono
     Vec A0 = centro + Vec( 0.00, 0.60,  0.50) * escala;
     Vec A1 = centro + Vec( 0.43, 0.60,  0.25) * escala;
@@ -542,39 +568,39 @@ void agregarDiamante(Escena& escena, Vec centro, double escala, Material mat)
     Vec C = centro + Vec(0.00, 0.60, 0.00) * escala;
 
     //Tapa superior hexagonal 6 triangulos
-    escena.agregarObjeto(new Triangulo(C, A0, A1, mat));
-    escena.agregarObjeto(new Triangulo(C, A1, A2, mat));
-    escena.agregarObjeto(new Triangulo(C, A2, A3, mat));
-    escena.agregarObjeto(new Triangulo(C, A3, A4, mat));
-    escena.agregarObjeto(new Triangulo(C, A4, A5, mat));
-    escena.agregarObjeto(new Triangulo(C, A5, A0, mat));
+    agregarTrianguloGrupo(escena, C, A0, A1, mat, grupoDiamante);
+    agregarTrianguloGrupo(escena, C, A1, A2, mat, grupoDiamante);
+    agregarTrianguloGrupo(escena, C, A2, A3, mat, grupoDiamante);
+    agregarTrianguloGrupo(escena, C, A3, A4, mat, grupoDiamante);
+    agregarTrianguloGrupo(escena, C, A4, A5, mat, grupoDiamante);
+    agregarTrianguloGrupo(escena, C, A5, A0, mat, grupoDiamante);
 
     //Corona hexagonal superior hacia hexagono central 12 triangulos
-    escena.agregarObjeto(new Triangulo(A0, B0, B1, mat));
-    escena.agregarObjeto(new Triangulo(A0, B1, A1, mat));
+    agregarTrianguloGrupo(escena, A0, B0, B1, mat, grupoDiamante);
+    agregarTrianguloGrupo(escena, A0, B1, A1, mat, grupoDiamante);
 
-    escena.agregarObjeto(new Triangulo(A1, B1, B2, mat));
-    escena.agregarObjeto(new Triangulo(A1, B2, A2, mat));
+    agregarTrianguloGrupo(escena, A1, B1, B2, mat, grupoDiamante);
+    agregarTrianguloGrupo(escena, A1, B2, A2, mat, grupoDiamante);
 
-    escena.agregarObjeto(new Triangulo(A2, B2, B3, mat));
-    escena.agregarObjeto(new Triangulo(A2, B3, A3, mat));
+    agregarTrianguloGrupo(escena, A2, B2, B3, mat, grupoDiamante);
+    agregarTrianguloGrupo(escena, A2, B3, A3, mat, grupoDiamante);
 
-    escena.agregarObjeto(new Triangulo(A3, B3, B4, mat));
-    escena.agregarObjeto(new Triangulo(A3, B4, A4, mat));
+    agregarTrianguloGrupo(escena, A3, B3, B4, mat, grupoDiamante);
+    agregarTrianguloGrupo(escena, A3, B4, A4, mat, grupoDiamante);
 
-    escena.agregarObjeto(new Triangulo(A4, B4, B5, mat));
-    escena.agregarObjeto(new Triangulo(A4, B5, A5, mat));
+    agregarTrianguloGrupo(escena, A4, B4, B5, mat, grupoDiamante);
+    agregarTrianguloGrupo(escena, A4, B5, A5, mat, grupoDiamante);
 
-    escena.agregarObjeto(new Triangulo(A5, B5, B0, mat));
-    escena.agregarObjeto(new Triangulo(A5, B0, A0, mat));
+    agregarTrianguloGrupo(escena, A5, B5, B0, mat, grupoDiamante);
+    agregarTrianguloGrupo(escena, A5, B0, A0, mat, grupoDiamante);
 
     //Pabellon hexagono central hacia punta inferior 6 triangulos
-    escena.agregarObjeto(new Triangulo(B0, P, B1, mat));
-    escena.agregarObjeto(new Triangulo(B1, P, B2, mat));
-    escena.agregarObjeto(new Triangulo(B2, P, B3, mat));
-    escena.agregarObjeto(new Triangulo(B3, P, B4, mat));
-    escena.agregarObjeto(new Triangulo(B4, P, B5, mat));
-    escena.agregarObjeto(new Triangulo(B5, P, B0, mat));
+    agregarTrianguloGrupo(escena, B0, P, B1, mat, grupoDiamante);
+    agregarTrianguloGrupo(escena, B1, P, B2, mat, grupoDiamante);
+    agregarTrianguloGrupo(escena, B2, P, B3, mat, grupoDiamante);
+    agregarTrianguloGrupo(escena, B3, P, B4, mat, grupoDiamante);
+    agregarTrianguloGrupo(escena, B4, P, B5, mat, grupoDiamante);
+    agregarTrianguloGrupo(escena, B5, P, B0, mat, grupoDiamante);
 }
 
 void cargarEscena(Escena& escena)
@@ -633,13 +659,16 @@ void cargarEscena(Escena& escena)
 
     escena.cam = Camara(Vec(px, py, pz), Vec(lx, ly, lz), Vec(upx, upy, upz), fov, width, height);
 
-    XMLElement* light = root->FirstChildElement("light");
+    for (XMLElement* light = root->FirstChildElement("lights"); light != nullptr; light = light->NextSiblingElement("lights")){
 
-    double lxPos = light->DoubleAttribute("x");
-    double lyPos = light->DoubleAttribute("y");
-    double lzPos = light->DoubleAttribute("z");
+        double lxPos = light->DoubleAttribute("x");
+        double lyPos = light->DoubleAttribute("y");
+        double lzPos = light->DoubleAttribute("z");
+        double intensidad = light->DoubleAttribute("intensidad");
 
-    escena.luzPos = Vec(lxPos, lyPos, lzPos);
+        Luz* luz = new Luz(Vec(lxPos, lyPos, lzPos), intensidad);
+        escena.agregarLuz(luz);
+    }
 
     for (XMLElement* sphere = root->FirstChildElement("sphere"); sphere != nullptr; sphere = sphere->NextSiblingElement("sphere"))
     {
@@ -657,9 +686,10 @@ void cargarEscena(Escena& escena)
         mat.reflectivity = sphere->DoubleAttribute("reflectivity");
 
         Esfera* e = new Esfera(Vec(x, y, z), radius, mat);
-
+        e->grupo = escena.cantidadObjetos;
         escena.agregarObjeto(e);
     }
+    /*
     for (XMLElement* triangle = root->FirstChildElement("triangle"); triangle != nullptr; triangle = triangle->NextSiblingElement("triangle"))
     {
         Vec v0(triangle->DoubleAttribute("v0x"), triangle->DoubleAttribute("v0y"), triangle->DoubleAttribute("v0z"));
@@ -674,9 +704,10 @@ void cargarEscena(Escena& escena)
         mat.reflectivity = triangle->DoubleAttribute("reflectivity");
 
         Triangulo* t = new Triangulo(v0, v1, v2, mat);
-
+        t->grupo = escena.cantidadObjetos;
         escena.agregarObjeto(t);
-    }
+    }*/
+    
     for (XMLElement* plane = root->FirstChildElement("plane"); plane != nullptr; plane = plane->NextSiblingElement("plane"))
     {
         double px = plane->DoubleAttribute("px");
@@ -695,9 +726,10 @@ void cargarEscena(Escena& escena)
         mat.reflectivity = plane->DoubleAttribute("reflectivity");
 
         Plano* p = new Plano(Vec(px, py, pz), Vec(nx, ny, nz), mat);
-
+        p->grupo = escena.cantidadObjetos;
         escena.agregarObjeto(p);
     }
+
     for (XMLElement* diamond = root->FirstChildElement("diamond"); diamond != nullptr; diamond = diamond->NextSiblingElement("diamond"))
     {
         double x = diamond->DoubleAttribute("x");
@@ -780,50 +812,71 @@ bool intersectarEscena(Escena& escena, Rayo rayo, infoImpacto& hit, Objeto*& obj
 Color traceRay(Escena& escena, Rayo r, int depth);
 
 Color shade(Escena& escena,infoImpacto& hit,Objeto* objetoImpactado,Rayo r,int depth){
-    Vec n = hit.normal;
-
-    Vec dirALuz = escena.luzPos - hit.punto;
-
-    Vec L = dirALuz.normalizar();
-
-    Vec V = r.direccion.opuesto().normalizar();
-
-    Vec R = reflect(L.opuesto(),hit.normal);
-
-    Rayo shadowRay(hit.punto + hit.normal * EPSILON, dirALuz.normalizar());
-
-    bool enSombra = false;
-
-    double distanciaLuz = dirALuz.largo();
-
-    for (int i = 0; i < escena.cantidadObjetos; i++){
-        if (escena.objetos[i] == objetoImpactado)
-            continue;
-        infoImpacto hitSombra;
-        hitSombra.t = 1e30;
-        hitSombra.impacto = false;
-        if (escena.objetos[i]->interseccion(shadowRay, hitSombra) && hitSombra.t < distanciaLuz){
-            enSombra = true;
-        }
-    }
-    if (enSombra){
-        return hit.material.diffuse * 0.1;
-    }
-    double intensidad = n.productoEscalar(L);
-    if (intensidad < 0){
-        intensidad = 0;
-    }
+    Color colorFinal(0,0,0);
     Color ambiente = hit.material.diffuse * 0.1;
-    Color difuso = hit.material.diffuse * intensidad;
+    Vec V;
+    for (int i = 0; i < escena.cantidadLuces; i++){
+        Vec n = hit.normal;
 
-    double spec = R.productoEscalar(V);
-    if (spec < 0){
-        spec = 0;
+        Vec dirALuz = escena.luces[i]->posicion - hit.punto;
+
+        Vec L = dirALuz.normalizar();
+
+        V = r.direccion.opuesto().normalizar();
+
+        Vec R = reflect(L.opuesto(),hit.normal);
+
+        Rayo shadowRay(hit.punto + hit.normal * EPSILON, dirALuz.normalizar());
+
+        Color filtroSombra(1,1,1);
+        bool bloqueada = false;
+
+        double distanciaLuz = dirALuz.largo();
+
+        double atenuacion = 1.0 / (1.0 + 0.01 * distanciaLuz * distanciaLuz);
+
+        for (int i = 0; i < escena.cantidadObjetos; i++){
+            if (escena.objetos[i]->grupo == objetoImpactado->grupo){
+                continue;
+            }
+            infoImpacto hitSombra;
+            hitSombra.t = 1e30;
+            hitSombra.impacto = false;
+            if (escena.objetos[i]->interseccion(shadowRay, hitSombra) && hitSombra.t < distanciaLuz){
+                Material mat =
+                    hitSombra.material;
+
+                if(mat.transparency > 0){
+                    Color filtro = mat.diffuse * (0.5 + 0.5 * mat.transparency);
+                    filtroSombra = filtroSombra * filtro;
+                } else {
+                    bloqueada = true;
+                    break;
+                }
+            }
+        }
+        if (bloqueada){
+            continue;
+        }
+
+        double intensidad = n.productoEscalar(L);
+        if (intensidad < 0){
+            intensidad = 0;
+        }
+        
+        Color difuso = (hit.material.diffuse * intensidad * escena.luces[i]->intensidad * atenuacion) * filtroSombra;
+        double spec = R.productoEscalar(V);
+        if (spec < 0){
+            spec = 0;
+        }
+        spec = pow(spec,hit.material.shininess);
+        Color especular = (hit.material.specular * spec * escena.luces[i]->intensidad * atenuacion) * filtroSombra;
+
+        colorFinal = colorFinal + difuso + especular;
     }
-    spec = pow(spec,hit.material.shininess);
-    Color especular = hit.material.specular * spec;
 
-    Color colorFinal = ambiente + difuso + especular;
+    colorFinal = colorFinal + ambiente;
+
 
     Color colorReflejado(0,0,0);
     if (hit.material.reflectivity > 0 && depth < 5)
