@@ -20,14 +20,14 @@
 
 
 
-	<lights
+	<light
         x="-1.5"
         y="1.8"
         z="-4"
         intensidad="1.0"
     />
 
-    <lights
+    <light
         x="1.5"
         y="1.8"
         z="-4"
@@ -41,7 +41,7 @@
         y="1"
         z="-5"
 
-        radius="1"
+        radius="0.5"
 
         dr="1"
         dg="1"
@@ -57,7 +57,7 @@
     />
 
 
-
+<!--
 	<sphere
         x="-1"
         y="-1"
@@ -77,13 +77,13 @@
 
         reflectivity="0"
     />
-
+-->
 
 
 	<sphere
-        x="1"
-        y="-1"
-        z="-4"
+        x="0.7"
+        y="0"
+        z="-5"
 
         radius="0.5"
 
@@ -131,11 +131,11 @@
 
 
     <diamond
-        x="-1"
-        y="1"
-        z="-4"
+        x="-0.7"
+        y="0"
+        z="-5"
 
-        scale="0.8"
+        scale="0.6"
 
         dr="0.55"
         dg="0.90"
@@ -270,6 +270,27 @@
         shininess="0"
 
         reflectivity="0"
+    />
+
+    <cylinder
+        x="0"
+        y="0"
+        z="-5"
+
+        radius="0.5"
+        height="1.0"
+
+        dr="0.2"
+        dg="0.2"
+        db="1.0"
+
+        sr="1"
+        sg="1"
+        sb="1"
+
+        shininess="64"
+
+        reflectivity="0.3"
     />
 
 </scene>
