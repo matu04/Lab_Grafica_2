@@ -20,10 +20,18 @@
 
 
 
-	<light
-        x="0"
-        y="1"
-        z="-3"
+	<lights
+        x="-1.5"
+        y="1.8"
+        z="-4"
+        intensidad="1.0"
+    />
+
+    <lights
+        x="1.5"
+        y="1.8"
+        z="-4"
+        intensidad="1.0"
     />
 
 
@@ -73,8 +81,8 @@
 
 
 	<sphere
-        x="0"
-        y="0"
+        x="1"
+        y="-1"
         z="-4"
 
         radius="0.5"
@@ -117,14 +125,14 @@
 
         shininess="32"
 
-        reflectivity="0"
+        reflectivity="0.15"
     />
 
 
 
     <diamond
-        x="0"
-        y="0"
+        x="-1"
+        y="1"
         z="-4"
 
         scale="0.8"
@@ -137,9 +145,9 @@
         sg="1"
         sb="1"
 
-        shininess="256"
+        shininess="512"
 
-        reflectivity="0.2"
+        reflectivity="0.4"
         transparency="0.85"
         ior="2.417"
     />
