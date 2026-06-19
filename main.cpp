@@ -73,11 +73,11 @@ public:
     Vec arriba;
     Vec derecha;
     double fov;
-    int ancho;
-    int alto;
+    double ancho;
+    double alto;
     Camara();
     Camara(Vec posicion, Vec objetivo, Vec arriba, double fov, int ancho, int alto);
-    Rayo generarRayo(int x, int y);
+    Rayo generarRayo(double x, double y);
 };
 
 Camara::Camara() {
@@ -100,10 +100,10 @@ Camara::Camara(Vec posicion, Vec objetivo, Vec arriba, double fov, int ancho, in
     this->alto = alto;
 }
 
-Rayo Camara::generarRayo(int x, int y) {
+Rayo Camara::generarRayo(double x, double y) {
     // coordenadas normalizadas [0,1]
-    double u = (x + 0.5) / ancho;
-    double v = (y + 0.5) / alto;
+    double u = x / ancho;
+    double v = y / alto;
     double aspect = (double)ancho / alto;
     // coordenadas viewport [-1,1]
     double px = (2.0 * u - 1.0) * aspect;
@@ -742,6 +742,8 @@ void cargarEscena(Escena& escena)
         mat.specular = Color(sphere->DoubleAttribute("sr"), sphere->DoubleAttribute("sg"), sphere->DoubleAttribute("sb"));
         mat.shininess = sphere->DoubleAttribute("shininess");
         mat.reflectivity = sphere->DoubleAttribute("reflectivity");
+        mat.ior = sphere->DoubleAttribute("ior");
+        mat.transparency = sphere->DoubleAttribute("transparency");
 
         Esfera* e = new Esfera(Vec(x, y, z), radius, mat);
         e->grupo = escena.cantidadObjetos;
@@ -782,6 +784,8 @@ void cargarEscena(Escena& escena)
         mat.specular = Color(plane->DoubleAttribute("sr"), plane->DoubleAttribute("sg"), plane->DoubleAttribute("sb"));
         mat.shininess = plane->DoubleAttribute("shininess");
         mat.reflectivity = plane->DoubleAttribute("reflectivity");
+        mat.ior = plane->DoubleAttribute("ior");
+        mat.transparency = plane->DoubleAttribute("transparency");
 
         Plano* p = new Plano(Vec(px, py, pz), Vec(nx, ny, nz), mat);
         p->grupo = escena.cantidadObjetos;
@@ -800,10 +804,10 @@ void cargarEscena(Escena& escena)
 
         mat.diffuse = Color(diamond->DoubleAttribute("dr", 0.55), diamond->DoubleAttribute("dg", 0.90), diamond->DoubleAttribute("db", 1.00));
         mat.specular = Color(diamond->DoubleAttribute("sr", 1.0), diamond->DoubleAttribute("sg", 1.0), diamond->DoubleAttribute("sb", 1.0));
-        mat.shininess = diamond->DoubleAttribute("shininess", 256.0);
-        mat.reflectivity = diamond->DoubleAttribute("reflectivity", 0.2);
-        mat.transparency = diamond->DoubleAttribute("transparency", 0.85);
-        mat.ior = diamond->DoubleAttribute("ior", 2.417);
+        mat.shininess = diamond->DoubleAttribute("shininess");
+        mat.reflectivity = diamond->DoubleAttribute("reflectivity");
+        mat.transparency = diamond->DoubleAttribute("transparency");
+        mat.ior = diamond->DoubleAttribute("ior");
         mat.ambient = mat.diffuse * 0.1;
 
         agregarDiamante(escena, Vec(x, y, z), escala, mat);
@@ -822,8 +826,8 @@ void cargarEscena(Escena& escena)
         mat.specular = Color(cylinder->DoubleAttribute("sr"), cylinder->DoubleAttribute("sg"), cylinder->DoubleAttribute("sb"));
         mat.shininess = cylinder->DoubleAttribute("shininess");
         mat.reflectivity = cylinder->DoubleAttribute("reflectivity");
-        mat.transparency = cylinder->DoubleAttribute("transparency", 0.0);
-        mat.ior = cylinder->DoubleAttribute("ior", 1.0);
+        mat.transparency = cylinder->DoubleAttribute("transparency");
+        mat.ior = cylinder->DoubleAttribute("ior");
 
         Cilindro* c = new Cilindro(Vec(x,y,z), radius, height, mat);
         c->grupo = escena.cantidadObjetos;
@@ -1032,10 +1036,15 @@ void renderizar(Escena& escena, Framebuffer& fb)
 {
     for (int y = 0; y < fb.height; y++){
         for (int x = 0; x < fb.width; x++){
-            Rayo r = escena.cam.generarRayo(x, y);
-
-            Color c = traceRay(escena, r, 0);
-
+            Color acumulado(0,0,0);
+            double offsets[2] = {0.25, 0.75};
+            for(int sy = 0; sy < 2; sy++){
+                for(int sx = 0; sx < 2; sx++){
+                    Rayo r = escena.cam.generarRayo(x + offsets[sx], y + offsets[sy]);
+                    acumulado = acumulado + traceRay(escena, r, 0);
+                }
+            }
+            Color c = acumulado * 0.25;
             fb.setPixel(x, y, c);
         }
     }
