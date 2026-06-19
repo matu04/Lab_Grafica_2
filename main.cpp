@@ -429,8 +429,19 @@ public:
 
     bool interseccion(Rayo rayo, infoImpacto& impacto) override
     {
+        const double EPSILON = 0.000001;
 
-        //Para los laterales asumimos que el cilindro es infinito en prinicipio y paralelo a el eje y//
+        double mitadAltura = altura / 2.0;
+        double yMin = centro.y - mitadAltura;
+        double yMax = centro.y + mitadAltura;
+
+        double tElegido = 1e30;
+        Vec puntoElegido;
+        Vec normalElegida;
+
+        //Lateral//
+
+        //Para los laterales asumimos que el cilindro es infinito en prinicipio y paralelo al eje y//
         double dx = rayo.direccion.x;
         double dz = rayo.direccion.z;
 
@@ -444,46 +455,92 @@ public:
         double c = ox * ox + oz * oz - radio * radio;
 
         //Caso rayo paralelo a la pared//
-        if (abs(a) < EPSILON)
-            return false;
-
-        double discriminante = b * b - 4.0 * a * c;
-
-        if (discriminante < 0)
-            return false;
-
-        double raiz = sqrt(discriminante);
-
-        //Entrada y salida//
-        double t1 = (-b - raiz) / (2.0 * a);
-        double t2 = (-b + raiz) / (2.0 * a);
-
-        double mitadAltura = altura / 2.0;
-        double yMin = centro.y - mitadAltura;
-        double yMax = centro.y + mitadAltura;
-
-        double tElegido = 1e30;
-        Vec puntoElegido;
-
-        if (t1 > EPSILON)
+        if (abs(a) > EPSILON)
         {
-            Vec punto = rayo.origen + rayo.direccion * t1;
-            if (punto.y >= yMin && punto.y <= yMax)
+            double discriminante = b * b - 4.0 * a * c;
+
+            if (discriminante >= 0)
             {
-                tElegido = t1;
-                puntoElegido = punto;
+                double raiz = sqrt(discriminante);
+
+                //Entrada y salida//
+                double t1 = (-b - raiz) / (2.0 * a);
+                double t2 = (-b + raiz) / (2.0 * a);
+
+                if (t1 > EPSILON)
+                {
+                    Vec punto = rayo.origen + rayo.direccion * t1;
+                    if (punto.y >= yMin && punto.y <= yMax)
+                    {
+                        tElegido = t1;
+                        puntoElegido = punto;
+                        normalElegida = Vec(punto.x - centro.x, 0, punto.z - centro.z).normalizar();
+                    }
+                }
+
+                if (t2 > EPSILON && t2 < tElegido)
+                {
+                    Vec punto = rayo.origen + rayo.direccion * t2;
+                    if (punto.y >= yMin && punto.y <= yMax)
+                    {
+                        tElegido = t2;
+                        puntoElegido = punto;
+                        normalElegida = Vec(punto.x - centro.x, 0, punto.z - centro.z).normalizar();
+                    }
+                }
+            }
+        }
+        
+        //Fin lateral//
+
+        //Tapas//
+
+        if (abs(rayo.direccion.y) > EPSILON)
+        {
+            //Tapa de abajo//
+            //Pienso tapas como planos primero, y calculo interseccion solo en y//
+            double tInferior = (yMin - rayo.origen.y) / rayo.direccion.y;
+
+            if (tInferior > EPSILON && tInferior < tElegido)
+            {
+                Vec punto = rayo.origen + rayo.direccion * tInferior;
+
+                double dxTapa = punto.x - centro.x;
+                double dzTapa = punto.z - centro.z;
+
+                //Distancia entre dos puntos, centro en este caso//
+                double distanciaCuadrada = dxTapa * dxTapa + dzTapa * dzTapa;
+
+                if (distanciaCuadrada <= radio * radio)
+                {
+                    tElegido = tInferior;
+                    puntoElegido = punto;
+                    normalElegida = Vec(0, -1, 0);
+                }
+            }
+
+            //Tapa de ariba//
+            double tSuperior = (yMax - rayo.origen.y) / rayo.direccion.y;
+
+            if (tSuperior > EPSILON && tSuperior < tElegido)
+            {
+                Vec punto = rayo.origen + rayo.direccion * tSuperior;
+
+                double dxTapa = punto.x - centro.x;
+                double dzTapa = punto.z - centro.z;
+
+                double distanciaCuadrada = dxTapa * dxTapa + dzTapa * dzTapa;
+
+                if (distanciaCuadrada <= radio * radio)
+                {
+                    tElegido = tSuperior;
+                    puntoElegido = punto;
+                    normalElegida = Vec(0, 1, 0);
+                }
             }
         }
 
-        if (t2 > EPSILON && t2 < tElegido)
-        {
-            Vec punto = rayo.origen + rayo.direccion * t2;
-            if (punto.y >= yMin && punto.y <= yMax)
-            {
-                tElegido = t2;
-                puntoElegido = punto;
-            }
-        }
+        //Fin tapas//
 
         if (tElegido == 1e30)
             return false;
@@ -494,12 +551,13 @@ public:
         impacto.impacto = true;
         impacto.t = tElegido;
         impacto.punto = puntoElegido;
-        impacto.normal = Vec(puntoElegido.x - centro.x, 0, puntoElegido.z - centro.z).normalizar();
+        impacto.normal = normalElegida;
         impacto.material = material;
 
         return true;
     }
 };
+
 
 class Escena
 {
