@@ -661,6 +661,50 @@ void agregarDiamante(Escena& escena, Vec centro, double escala, Material mat)
     agregarTrianguloGrupo(escena, B5, P, B0, mat, grupoDiamante);
 }
 
+void agregarCaja(Escena& escena, Vec min, Vec max, Material mat)
+{
+    //Uso vertices de los extremos opuestos
+    Vec A(min.x, min.y, min.z);
+    Vec B(max.x, min.y, min.z);
+    Vec C(max.x, max.y, min.z);
+    Vec D(min.x, max.y, min.z);
+
+    Vec E(min.x, min.y, max.z);
+    Vec F(max.x, min.y, max.z);
+    Vec G(max.x, max.y, max.z);
+    Vec H(min.x, max.y, max.z);
+
+    escena.agregarObjeto(new Triangulo(A, B, C, mat));
+    escena.agregarObjeto(new Triangulo(A, C, D, mat));
+
+    escena.agregarObjeto(new Triangulo(F, E, H, mat));
+    escena.agregarObjeto(new Triangulo(F, H, G, mat));
+
+    escena.agregarObjeto(new Triangulo(E, A, D, mat));
+    escena.agregarObjeto(new Triangulo(E, D, H, mat));
+
+    escena.agregarObjeto(new Triangulo(B, F, G, mat));
+    escena.agregarObjeto(new Triangulo(B, G, C, mat));
+
+    escena.agregarObjeto(new Triangulo(D, G, C, mat));
+    escena.agregarObjeto(new Triangulo(D, H, G, mat));
+
+    escena.agregarObjeto(new Triangulo(E, F, B, mat));
+    escena.agregarObjeto(new Triangulo(E, B, A, mat));
+}
+
+void agregarMesa(Escena& escena, Vec centro, Material mat)
+{
+    // Tapa
+    agregarCaja(escena, centro + Vec(-1.4, -0.05, -0.7), centro + Vec( 1.4,  0.05,  0.7), mat);
+
+    // Patas
+    agregarCaja(escena, centro + Vec(-1.2, -1.0, -0.5), centro + Vec(-1.0, -0.05, -0.3), mat);
+    agregarCaja(escena, centro + Vec( 1.0, -1.0, -0.5), centro + Vec( 1.2, -0.05, -0.3), mat);
+    agregarCaja(escena, centro + Vec(-1.2, -1.0,  0.3), centro + Vec(-1.0, -0.05,  0.5), mat);
+    agregarCaja(escena, centro + Vec( 1.0, -1.0,  0.3), centro + Vec( 1.2, -0.05,  0.5), mat);
+}
+
 void cargarEscena(Escena& escena)
 {
     XMLDocument doc;
@@ -832,6 +876,24 @@ void cargarEscena(Escena& escena)
         Cilindro* c = new Cilindro(Vec(x,y,z), radius, height, mat);
         c->grupo = escena.cantidadObjetos;
         escena.agregarObjeto(c);
+    }
+
+    for (XMLElement* table = root->FirstChildElement("table"); table != nullptr; table = table->NextSiblingElement("table"))
+    {
+        double x = table->DoubleAttribute("x");
+        double y = table->DoubleAttribute("y");
+        double z = table->DoubleAttribute("z");
+
+        Material mat;
+
+        mat.diffuse = Color(table->DoubleAttribute("dr"), table->DoubleAttribute("dg"), table->DoubleAttribute("db"));
+        mat.specular = Color(table->DoubleAttribute("sr"), table->DoubleAttribute("sg"), table->DoubleAttribute("sb"));
+        mat.shininess = table->DoubleAttribute("shininess");
+        mat.reflectivity = table->DoubleAttribute("reflectivity");
+        mat.transparency = table->DoubleAttribute("transparency");
+        mat.ior = table->DoubleAttribute("ior");
+
+        agregarMesa(escena, Vec(x, y, z), mat);
     }
 }
 
