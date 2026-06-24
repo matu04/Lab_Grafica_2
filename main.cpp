@@ -186,22 +186,15 @@ public:
 struct Material
 {
     Color ambient;
-
     Color diffuse;
-
     Color specular;
-
     double shininess;
-
     double reflectivity;
-
     double transparency;
-
     double ior; // indice refraccion
 };
 
-struct infoImpacto
-{
+struct infoImpacto{
     bool impacto;
     double t;
     Vec punto;
@@ -210,83 +203,59 @@ struct infoImpacto
 };
 
 void guardarImagen(const Framebuffer& fb, const char* filename) {
-
     FIBITMAP* image = FreeImage_Allocate(fb.width, fb.height, 24);
-
     for (int y = 0; y < fb.height; y++) {
-
         for (int x = 0; x < fb.width; x++) {
-
             Color c = fb.getPixel(x, y);
-
             c.acotar();
-
             RGBQUAD color;
-
             color.rgbRed = (BYTE)(c.r * 255);
             color.rgbGreen = (BYTE)(c.g * 255);
             color.rgbBlue = (BYTE)(c.b * 255);
-
             FreeImage_SetPixelColor(image, x, fb.height - y - 1, &color);
         }
     }
-
     FreeImage_Save(FIF_PNG, image, filename);
-
     FreeImage_Unload(image);
 }
 
-class Objeto
-{
+class Objeto{
 public:
     Material material;
-
     int grupo;
 
     Objeto(){
         grupo = -1;
     }
-
     virtual ~Objeto() = default;
-
     virtual bool interseccion(Rayo rayo, infoImpacto& impacto) = 0;
 };
 
-class Esfera : public Objeto
-{
+class Esfera : public Objeto{
 public:
     Vec centro;
     double radio;
 
-    Esfera(Vec centro, double radio, Material material)
-    {
+    Esfera(Vec centro, double radio, Material material){
         this->centro = centro;
         this->radio = radio;
         this->material = material;
     }
 
-    bool interseccion(Rayo rayo, infoImpacto& impacto) override
-    {
-
+    bool interseccion(Rayo rayo, infoImpacto& impacto) override{
         Vec vectorEsferaCamara = rayo.origen - centro;
-
         //Sustituyo ecuacion del rayo dentro de la de la esfera// 
         double a = rayo.direccion.productoEscalar(rayo.direccion);
         double b = 2.0 * vectorEsferaCamara.productoEscalar(rayo.direccion);
         double c = vectorEsferaCamara.productoEscalar(vectorEsferaCamara) - radio * radio;
-
         double discriminante = b * b - 4.0 * a * c;
-
         if (discriminante < 0)
             return false;
 
         double raiz = sqrt(discriminante);
-
         double t1 = (-b - raiz) / (2.0 * a);
         double t2 = (-b + raiz) / (2.0 * a);
-
         double t;
-
         if (t1 > EPSILON)
             t = t1;
         else if (t2 > EPSILON)
@@ -303,35 +272,28 @@ public:
         impacto.punto = rayo.origen + rayo.direccion * t;
         impacto.normal = (impacto.punto - centro).normalizar();
         impacto.material = material;
-
         return true;
     }
 };
 
-class Plano : public Objeto
-{
+class Plano : public Objeto{
 public:
     Vec punto;
     Vec normal;
 
-    Plano(Vec punto, Vec normal, Material material)
-    {
+    Plano(Vec punto, Vec normal, Material material){
         this->punto = punto;
         this->normal = normal;
         this->material = material;
     }
 
-    bool interseccion(Rayo rayo, infoImpacto& impacto) override
-    {
-
+    bool interseccion(Rayo rayo, infoImpacto& impacto) override{
         double escalarRayoNPlano = rayo.direccion.productoEscalar(normal);
-
         if (abs(escalarRayoNPlano) < EPSILON)
             return false;
         
         //Dado un punto x para que este en el plano, se debe cumplir (x - punto del plano) productoEscalar normal = 0//
         double t = (punto - rayo.origen).productoEscalar(normal) / escalarRayoNPlano;
-
         if (t <= EPSILON)
             return false;
 
@@ -343,59 +305,47 @@ public:
         impacto.punto = rayo.origen + rayo.direccion * t;
         impacto.normal = normal;
         impacto.material = material;
-
         return true;
     }
 };
 
-class Triangulo : public Objeto
-{
+class Triangulo : public Objeto{
 public:
     Vec v0, v1, v2;
 
-    Triangulo(Vec v0, Vec v1, Vec v2, Material material)
-    {
+    Triangulo(Vec v0, Vec v1, Vec v2, Material material){
         this->v0 = v0;
         this->v1 = v1;
         this->v2 = v2;
         this->material = material;
     }
 
-    bool interseccion(Rayo rayo, infoImpacto& impacto) override
-    {
-
+    bool interseccion(Rayo rayo, infoImpacto& impacto) override{
         //Punto dentro del triangulo como P = v0 + u * (v1 - v0) + v * (v2 - v0)
         // Donde u >= 0; v >= 0; u + v <= 1//
         Vec lado1 = v1 - v0;
         Vec lado2 = v2 - v0;
-
         //Considerando un punto de un rayo se llega a: origen - v0 = u lado1 + v lado2 - t direccion//
-
         //vectorAux1 corresponde al determinante del sistema//
         Vec vectorAux1 = rayo.direccion.productoVectorial(lado2);
         double escalarLadoVectorAux = lado1.productoEscalar(vectorAux1);
-
         //Chequea si el rayo es paralelo//
         if (abs(escalarLadoVectorAux) < EPSILON)
             return false;
 
         double invEscalarLVA = 1.0 / escalarLadoVectorAux;
-
         //Cramer//
         Vec vectorV0Origen = rayo.origen - v0;
         double u = invEscalarLVA * vectorV0Origen.productoEscalar(vectorAux1);
-
         if (u < 0.0 || u > 1.0)
             return false;
 
         Vec vectorAux2 = vectorV0Origen.productoVectorial(lado1);
         double v = invEscalarLVA * rayo.direccion.productoEscalar(vectorAux2);
-
         if (v < 0.0 || u + v > 1.0)
             return false;
 
         double t = invEscalarLVA * lado2.productoEscalar(vectorAux2);
-
         if (t <= EPSILON)
             return false;
 
@@ -407,82 +357,61 @@ public:
         impacto.punto = rayo.origen + rayo.direccion * t;
         impacto.normal = lado1.productoVectorial(lado2).normalizar();
         impacto.material = material;
-
         return true;
     }
 };
 
-class Cilindro : public Objeto
-{
+class Cilindro : public Objeto{
 public:
     Vec centro;
     double radio;
     double altura;
 
-    Cilindro(Vec centro, double radio, double altura, Material material)
-    {
+    Cilindro(Vec centro, double radio, double altura, Material material){
         this->centro = centro;
         this->radio = radio;
         this->altura = altura;
         this->material = material;
     }
 
-    bool interseccion(Rayo rayo, infoImpacto& impacto) override
-    {
+    bool interseccion(Rayo rayo, infoImpacto& impacto) override{
         const double EPSILON = 0.000001;
-
         double mitadAltura = altura / 2.0;
         double yMin = centro.y - mitadAltura;
         double yMax = centro.y + mitadAltura;
-
         double tElegido = 1e30;
         Vec puntoElegido;
         Vec normalElegida;
-
         //Lateral//
-
         //Para los laterales asumimos que el cilindro es infinito en prinicipio y paralelo al eje y//
         double dx = rayo.direccion.x;
         double dz = rayo.direccion.z;
-
         //Origen del rayo relativo al centro del cilindro//
         double ox = rayo.origen.x - centro.x;
         double oz = rayo.origen.z - centro.z;
-
         //Consideramos sustitucion de punto del rayo en (x - centro.x)^2 + (z - centro.z)^2 = radio^2; similar a esfera//
         double a = dx * dx + dz * dz;
         double b = 2.0 * (ox * dx + oz * dz);
         double c = ox * ox + oz * oz - radio * radio;
-
         //Caso rayo paralelo a la pared//
-        if (abs(a) > EPSILON)
-        {
+        if (abs(a) > EPSILON){
             double discriminante = b * b - 4.0 * a * c;
-
-            if (discriminante >= 0)
-            {
+            if (discriminante >= 0){
                 double raiz = sqrt(discriminante);
-
                 //Entrada y salida//
                 double t1 = (-b - raiz) / (2.0 * a);
                 double t2 = (-b + raiz) / (2.0 * a);
-
-                if (t1 > EPSILON)
-                {
+                if (t1 > EPSILON){
                     Vec punto = rayo.origen + rayo.direccion * t1;
-                    if (punto.y >= yMin && punto.y <= yMax)
-                    {
+                    if (punto.y >= yMin && punto.y <= yMax){
                         tElegido = t1;
                         puntoElegido = punto;
                         normalElegida = Vec(punto.x - centro.x, 0, punto.z - centro.z).normalizar();
                     }
                 }
-
-                if (t2 > EPSILON && t2 < tElegido)
-                {
+                if (t2 > EPSILON && t2 < tElegido){
                     Vec punto = rayo.origen + rayo.direccion * t2;
-                    if (punto.y >= yMin && punto.y <= yMax)
-                    {
+                    if (punto.y >= yMin && punto.y <= yMax){
                         tElegido = t2;
                         puntoElegido = punto;
                         normalElegida = Vec(punto.x - centro.x, 0, punto.z - centro.z).normalizar();
@@ -490,58 +419,39 @@ public:
                 }
             }
         }
-        
         //Fin lateral//
-
         //Tapas//
-
-        if (abs(rayo.direccion.y) > EPSILON)
-        {
+        if (abs(rayo.direccion.y) > EPSILON){
             //Tapa de abajo//
             //Pienso tapas como planos primero, y calculo interseccion solo en y//
             double tInferior = (yMin - rayo.origen.y) / rayo.direccion.y;
-
-            if (tInferior > EPSILON && tInferior < tElegido)
-            {
+            if (tInferior > EPSILON && tInferior < tElegido){
                 Vec punto = rayo.origen + rayo.direccion * tInferior;
-
                 double dxTapa = punto.x - centro.x;
                 double dzTapa = punto.z - centro.z;
-
                 //Distancia entre dos puntos, centro en este caso//
                 double distanciaCuadrada = dxTapa * dxTapa + dzTapa * dzTapa;
-
-                if (distanciaCuadrada <= radio * radio)
-                {
+                if (distanciaCuadrada <= radio * radio){
                     tElegido = tInferior;
                     puntoElegido = punto;
                     normalElegida = Vec(0, -1, 0);
                 }
             }
-
             //Tapa de ariba//
             double tSuperior = (yMax - rayo.origen.y) / rayo.direccion.y;
-
-            if (tSuperior > EPSILON && tSuperior < tElegido)
-            {
+            if (tSuperior > EPSILON && tSuperior < tElegido){
                 Vec punto = rayo.origen + rayo.direccion * tSuperior;
-
                 double dxTapa = punto.x - centro.x;
                 double dzTapa = punto.z - centro.z;
-
                 double distanciaCuadrada = dxTapa * dxTapa + dzTapa * dzTapa;
-
-                if (distanciaCuadrada <= radio * radio)
-                {
+                if (distanciaCuadrada <= radio * radio){
                     tElegido = tSuperior;
                     puntoElegido = punto;
                     normalElegida = Vec(0, 1, 0);
                 }
             }
         }
-
         //Fin tapas//
-
         if (tElegido == 1e30)
             return false;
 
@@ -553,33 +463,23 @@ public:
         impacto.punto = puntoElegido;
         impacto.normal = normalElegida;
         impacto.material = material;
-
         return true;
     }
 };
 
 
-class Escena
-{
+class Escena{
 public:
-
     Objeto* objetos[100];
-
     int cantidadObjetos;
-
     Luz* luces[100];
     int cantidadLuces;
-
     Camara cam;
-
-
 
     Escena(){
         cantidadObjetos = 0;
         cantidadLuces = 0;
     }
-
-
 
     void agregarObjeto(Objeto* obj){
         objetos[cantidadObjetos] = obj;
@@ -600,8 +500,7 @@ void agregarTrianguloGrupo(Escena& escena, Vec a, Vec b, Vec c, Material mat, in
     escena.agregarObjeto(t);
 }
 
-void agregarDiamante(Escena& escena, Vec centro, double escala, Material mat)
-{
+void agregarDiamante(Escena& escena, Vec centro, double escala, Material mat){
     int grupoDiamante = 1000;
     //Tapa superior hexagono
     Vec A0 = centro + Vec( 0.00, 0.60,  0.50) * escala;
@@ -636,19 +535,14 @@ void agregarDiamante(Escena& escena, Vec centro, double escala, Material mat)
     //Corona hexagonal superior hacia hexagono central 12 triangulos
     agregarTrianguloGrupo(escena, A0, B0, B1, mat, grupoDiamante);
     agregarTrianguloGrupo(escena, A0, B1, A1, mat, grupoDiamante);
-
     agregarTrianguloGrupo(escena, A1, B1, B2, mat, grupoDiamante);
     agregarTrianguloGrupo(escena, A1, B2, A2, mat, grupoDiamante);
-
     agregarTrianguloGrupo(escena, A2, B2, B3, mat, grupoDiamante);
     agregarTrianguloGrupo(escena, A2, B3, A3, mat, grupoDiamante);
-
     agregarTrianguloGrupo(escena, A3, B3, B4, mat, grupoDiamante);
     agregarTrianguloGrupo(escena, A3, B4, A4, mat, grupoDiamante);
-
     agregarTrianguloGrupo(escena, A4, B4, B5, mat, grupoDiamante);
     agregarTrianguloGrupo(escena, A4, B5, A5, mat, grupoDiamante);
-
     agregarTrianguloGrupo(escena, A5, B5, B0, mat, grupoDiamante);
     agregarTrianguloGrupo(escena, A5, B0, A0, mat, grupoDiamante);
 
@@ -661,14 +555,13 @@ void agregarDiamante(Escena& escena, Vec centro, double escala, Material mat)
     agregarTrianguloGrupo(escena, B5, P, B0, mat, grupoDiamante);
 }
 
-void agregarCaja(Escena& escena, Vec min, Vec max, Material mat)
-{
+void agregarCaja(Escena& escena, Vec min, Vec max, Material mat){
     //Uso vertices de los extremos opuestos
     Vec A(min.x, min.y, min.z);
     Vec B(max.x, min.y, min.z);
     Vec C(max.x, max.y, min.z);
     Vec D(min.x, max.y, min.z);
-
+    
     Vec E(min.x, min.y, max.z);
     Vec F(max.x, min.y, max.z);
     Vec G(max.x, max.y, max.z);
@@ -693,8 +586,7 @@ void agregarCaja(Escena& escena, Vec min, Vec max, Material mat)
     escena.agregarObjeto(new Triangulo(E, B, A, mat));
 }
 
-void agregarMesa(Escena& escena, Vec centro, Material mat)
-{
+void agregarMesa(Escena& escena, Vec centro, Material mat){
     // Tapa
     agregarCaja(escena, centro + Vec(-1.4, -0.05, -0.7), centro + Vec( 1.4,  0.05,  0.7), mat);
 
@@ -705,10 +597,8 @@ void agregarMesa(Escena& escena, Vec centro, Material mat)
     agregarCaja(escena, centro + Vec( 1.0, -1.0,  0.3), centro + Vec( 1.2, -0.05,  0.5), mat);
 }
 
-void cargarEscena(Escena& escena)
-{
+void cargarEscena(Escena& escena){
     XMLDocument doc;
-
     #ifdef _WIN32
         if (doc.LoadFile("../escena.xml") == XML_SUCCESS)
         {
@@ -732,19 +622,16 @@ void cargarEscena(Escena& escena)
     #endif
 
     XMLElement* root = doc.FirstChildElement("scene");
-    if (!root) {
+    if (!root){
         std::cout << "Error: no existe <scene> en el XML\n";
         exit(1);
     }
 
     XMLElement* resolution = root->FirstChildElement("resolution");
-    
-
     int width = resolution->IntAttribute("width");
     int height = resolution->IntAttribute("height");
 
     XMLElement* camera = root->FirstChildElement("camera");
-
     double px = camera->DoubleAttribute("px");
     double py = camera->DoubleAttribute("py");
     double pz = camera->DoubleAttribute("pz");
@@ -758,11 +645,9 @@ void cargarEscena(Escena& escena)
     double upz = camera->DoubleAttribute("upz");
 
     double fov = camera->DoubleAttribute("fov");
-
     escena.cam = Camara(Vec(px, py, pz), Vec(lx, ly, lz), Vec(upx, upy, upz), fov, width, height);
 
     for (XMLElement* light = root->FirstChildElement("light"); light != nullptr; light = light->NextSiblingElement("light")){
-
         double lxPos = light->DoubleAttribute("x");
         double lyPos = light->DoubleAttribute("y");
         double lzPos = light->DoubleAttribute("z");
@@ -772,16 +657,13 @@ void cargarEscena(Escena& escena)
         escena.agregarLuz(luz);
     }
 
-    for (XMLElement* sphere = root->FirstChildElement("sphere"); sphere != nullptr; sphere = sphere->NextSiblingElement("sphere"))
-    {
+    for (XMLElement* sphere = root->FirstChildElement("sphere"); sphere != nullptr; sphere = sphere->NextSiblingElement("sphere")){
         double x = sphere->DoubleAttribute("x");
         double y = sphere->DoubleAttribute("y");
         double z = sphere->DoubleAttribute("z");
-
         double radius = sphere->DoubleAttribute("radius");
 
         Material mat;
-
         mat.diffuse = Color(sphere->DoubleAttribute("dr"), sphere->DoubleAttribute("dg"), sphere->DoubleAttribute("db"));
         mat.specular = Color(sphere->DoubleAttribute("sr"), sphere->DoubleAttribute("sg"), sphere->DoubleAttribute("sb"));
         mat.shininess = sphere->DoubleAttribute("shininess");
@@ -812,8 +694,7 @@ void cargarEscena(Escena& escena)
         escena.agregarObjeto(t);
     }*/
     
-    for (XMLElement* plane = root->FirstChildElement("plane"); plane != nullptr; plane = plane->NextSiblingElement("plane"))
-    {
+    for (XMLElement* plane = root->FirstChildElement("plane"); plane != nullptr; plane = plane->NextSiblingElement("plane")){
         double px = plane->DoubleAttribute("px");
         double py = plane->DoubleAttribute("py");
         double pz = plane->DoubleAttribute("pz");
@@ -823,7 +704,6 @@ void cargarEscena(Escena& escena)
         double nz = plane->DoubleAttribute("nz");
 
         Material mat;
-
         mat.diffuse = Color(plane->DoubleAttribute("dr"), plane->DoubleAttribute("dg"), plane->DoubleAttribute("db"));
         mat.specular = Color(plane->DoubleAttribute("sr"), plane->DoubleAttribute("sg"), plane->DoubleAttribute("sb"));
         mat.shininess = plane->DoubleAttribute("shininess");
@@ -836,16 +716,13 @@ void cargarEscena(Escena& escena)
         escena.agregarObjeto(p);
     }
 
-    for (XMLElement* diamond = root->FirstChildElement("diamond"); diamond != nullptr; diamond = diamond->NextSiblingElement("diamond"))
-    {
+    for (XMLElement* diamond = root->FirstChildElement("diamond"); diamond != nullptr; diamond = diamond->NextSiblingElement("diamond")){
         double x = diamond->DoubleAttribute("x");
         double y = diamond->DoubleAttribute("y");
         double z = diamond->DoubleAttribute("z");
-
         double escala = diamond->DoubleAttribute("scale", 1.0);
 
         Material mat;
-
         mat.diffuse = Color(diamond->DoubleAttribute("dr", 0.55), diamond->DoubleAttribute("dg", 0.90), diamond->DoubleAttribute("db", 1.00));
         mat.specular = Color(diamond->DoubleAttribute("sr", 1.0), diamond->DoubleAttribute("sg", 1.0), diamond->DoubleAttribute("sb", 1.0));
         mat.shininess = diamond->DoubleAttribute("shininess");
@@ -865,7 +742,6 @@ void cargarEscena(Escena& escena)
         double height = cylinder->DoubleAttribute("height");
 
         Material mat;
-
         mat.diffuse = Color(cylinder->DoubleAttribute("dr"), cylinder->DoubleAttribute("dg"), cylinder->DoubleAttribute("db"));
         mat.specular = Color(cylinder->DoubleAttribute("sr"), cylinder->DoubleAttribute("sg"), cylinder->DoubleAttribute("sb"));
         mat.shininess = cylinder->DoubleAttribute("shininess");
@@ -878,14 +754,12 @@ void cargarEscena(Escena& escena)
         escena.agregarObjeto(c);
     }
 
-    for (XMLElement* table = root->FirstChildElement("table"); table != nullptr; table = table->NextSiblingElement("table"))
-    {
+    for (XMLElement* table = root->FirstChildElement("table"); table != nullptr; table = table->NextSiblingElement("table")){
         double x = table->DoubleAttribute("x");
         double y = table->DoubleAttribute("y");
         double z = table->DoubleAttribute("z");
 
         Material mat;
-
         mat.diffuse = Color(table->DoubleAttribute("dr"), table->DoubleAttribute("dg"), table->DoubleAttribute("db"));
         mat.specular = Color(table->DoubleAttribute("sr"), table->DoubleAttribute("sg"), table->DoubleAttribute("sb"));
         mat.shininess = table->DoubleAttribute("shininess");
@@ -906,25 +780,19 @@ Vec refract(const Vec& I, const Vec& N, double idr, bool& rit){ //I vector incid
     double idrI = 1.0; //indice de refraccion incidente
     double idrT = idr; //indice de refraccion transmitido
     Vec n = N;
-
     rit = false;
-
     if (PEI < 0) {
         PEI = -PEI;
     } else {
         std::swap(idrI, idrT);
         n = N.opuesto();
     }
-
     double eta = idrI / idrT; //factor clave de Snell, indica cuanto se desvía el rayo al entrar en el nuevo medio
-
     double k = 1.0 - eta * eta * (1.0 - PEI * PEI);
-
     if (k < 0) {
         rit = true;
         return Vec(0,0,0);
     }
-
     return I * eta + n * (eta * PEI - sqrt(k));
 }
 
@@ -940,45 +808,38 @@ bool intersectarEscena(Escena& escena, Rayo rayo, infoImpacto& hit, Objeto*& obj
     hit.t = 1e30;
     hit.impacto = false;
     objetoImpactado = nullptr;
-
     for (int i = 0; i < escena.cantidadObjetos; i++){
         infoImpacto tempHit;
         tempHit.t = hit.t;
-
         if (escena.objetos[i]->interseccion(rayo, tempHit)){
             hit = tempHit;
             objetoImpactado = escena.objetos[i];
         }
     }
-
     return hit.impacto;
 }
 
 Color renderReflectionPixel(Escena& escena, Rayo r){
     infoImpacto hit;
     Objeto* obj = nullptr;
-
     if (!intersectarEscena(escena, r, hit, obj))
         return Color(0,0,0);
 
     double v = hit.material.reflectivity;
-
     return Color(v,v,v);
 }
 
 Color renderTransmissionPixel(Escena& escena, Rayo r){
     infoImpacto hit;
     Objeto* obj = nullptr;
-
     if (!intersectarEscena(escena, r, hit, obj))
         return Color(0,0,0);
 
     double v = hit.material.transparency;
-
     return Color(v,v,v);
 }
 
-Color traceRay(Escena& escena, Rayo r, int depth);
+Color traceRay(Escena& escena, Rayo r, int depth); //se define aca porque la funcion shade utiliza traceRay y viceversa
 
 Color shade(Escena& escena,infoImpacto& hit,Objeto* objetoImpactado,Rayo r,int depth){
     Color colorFinal(0,0,0);
@@ -986,24 +847,15 @@ Color shade(Escena& escena,infoImpacto& hit,Objeto* objetoImpactado,Rayo r,int d
     Vec V;
     for (int i = 0; i < escena.cantidadLuces; i++){
         Vec n = hit.normal;
-
         Vec dirALuz = escena.luces[i]->posicion - hit.punto;
-
         Vec L = dirALuz.normalizar();
-
         V = r.direccion.opuesto().normalizar();
-
         Vec R = reflect(L.opuesto(),hit.normal);
-
         Rayo shadowRay(hit.punto + hit.normal * EPSILON, dirALuz.normalizar());
-
         Color filtroSombra(1,1,1);
         bool bloqueada = false;
-
         double distanciaLuz = dirALuz.largo();
-
         double atenuacion = 1.0 / (1.0 + 0.01 * distanciaLuz * distanciaLuz);
-
         for (int i = 0; i < escena.cantidadObjetos; i++){
             if (escena.objetos[i]->grupo == objetoImpactado->grupo){
                 continue;
@@ -1012,9 +864,7 @@ Color shade(Escena& escena,infoImpacto& hit,Objeto* objetoImpactado,Rayo r,int d
             hitSombra.t = 1e30;
             hitSombra.impacto = false;
             if (escena.objetos[i]->interseccion(shadowRay, hitSombra) && hitSombra.t < distanciaLuz){
-                Material mat =
-                    hitSombra.material;
-
+                Material mat = hitSombra.material;
                 if(mat.transparency > 0){
                     Color filtro = mat.diffuse * (0.5 + 0.5 * mat.transparency);
                     filtroSombra = filtroSombra * filtro;
@@ -1027,12 +877,10 @@ Color shade(Escena& escena,infoImpacto& hit,Objeto* objetoImpactado,Rayo r,int d
         if (bloqueada){
             continue;
         }
-
         double intensidad = n.productoEscalar(L);
         if (intensidad < 0){
             intensidad = 0;
         }
-        
         Color difuso = (hit.material.diffuse * intensidad * escena.luces[i]->intensidad * atenuacion) * filtroSombra;
         double spec = R.productoEscalar(V);
         if (spec < 0){
@@ -1040,33 +888,21 @@ Color shade(Escena& escena,infoImpacto& hit,Objeto* objetoImpactado,Rayo r,int d
         }
         spec = pow(spec,hit.material.shininess);
         Color especular = (hit.material.specular * spec * escena.luces[i]->intensidad * atenuacion) * filtroSombra;
-
         colorFinal = colorFinal + difuso + especular;
     }
-
     colorFinal = colorFinal + ambiente;
-
-
     Color colorReflejado(0,0,0);
-    if (hit.material.reflectivity > 0 && depth < 5)
-    {
+    if (hit.material.reflectivity > 0 && depth < 5){
         Vec direccionReflejada = reflect(r.direccion, hit.normal);
-
         Rayo reflectedRay(hit.punto + hit.normal * EPSILON, direccionReflejada);
-
         colorReflejado = traceRay(escena, reflectedRay, depth + 1);
     }
-
     Color colorRefractado(0,0,0);
-    if (hit.material.transparency > 0)
-    {
+    if (hit.material.transparency > 0){
         bool tir;
         Vec dirRefractada = refract(r.direccion, hit.normal, hit.material.ior, tir);
-
-        if (!tir)
-        {
+        if (!tir){
             Rayo refractedRay(hit.punto - hit.normal * EPSILON, dirRefractada);
-
             colorRefractado = traceRay(escena, refractedRay, depth + 1);
         }
     }
@@ -1075,27 +911,22 @@ Color shade(Escena& escena,infoImpacto& hit,Objeto* objetoImpactado,Rayo r,int d
     double F = fresnelSchlick(cosi, hit.material.ior);
     Color colorFresnel = (colorReflejado * hit.material.reflectivity) * F + (colorRefractado * hit.material.transparency) * (1.0 - F);
     colorFinal = colorFinal + colorFresnel;
-
     return colorFinal;
 }
 
 Color traceRay(Escena& escena, Rayo r, int depth){
     infoImpacto hit;
     Objeto* objetoImpactado = nullptr;
-
     if(depth >= 5){
         return Color(0, 0, 0);
     }
-
     if (!intersectarEscena(escena, r, hit, objetoImpactado)){
         return Color(0, 0, 0);
     }
-
     return shade(escena, hit, objetoImpactado, r, depth);
 }
 
-void renderizar(Escena& escena, Framebuffer& fb)
-{
+void renderizar(Escena& escena, Framebuffer& fb){
     for (int y = 0; y < fb.height; y++){
         for (int x = 0; x < fb.width; x++){
             Color acumulado(0,0,0);
@@ -1113,31 +944,18 @@ void renderizar(Escena& escena, Framebuffer& fb)
 }
 
 void renderizarAuxiliar(Escena& escena, Framebuffer& fbReflection, Framebuffer& fbTransmission){
-    for(int y=0;y<fbReflection.height;y++)
-    {
-        for(int x=0;x<fbReflection.width;x++)
-        {
-            Rayo r =
-                escena.cam.generarRayo(x,y);
-
-            fbReflection.setPixel(
-                x,y,
-                renderReflectionPixel(escena,r)
-            );
-
-            fbTransmission.setPixel(
-                x,y,
-                renderTransmissionPixel(escena,r)
-            );
+    for(int y=0;y<fbReflection.height;y++){
+        for(int x=0;x<fbReflection.width;x++){
+            Rayo r = escena.cam.generarRayo(x,y);
+            fbReflection.setPixel(x, y, renderReflectionPixel(escena,r));
+            fbTransmission.setPixel(x, y, renderTransmissionPixel(escena,r));
         }
     }
 }
 
 int main(int argc, char* argv[]){
     FreeImage_Initialise();
-
     int width = 800;
-
     int height = 600;
 
     Framebuffer fb(width, height);
@@ -1151,7 +969,6 @@ int main(int argc, char* argv[]){
     renderizar(escena, fb);
     renderizarAuxiliar(escena, fbReflection, fbTransmission);
 
-
     #ifdef _WIN32
         guardarImagen(fb, "../imagen.png");
         guardarImagen(fbReflection, "../reflection.png");
@@ -1161,9 +978,7 @@ int main(int argc, char* argv[]){
         guardarImagen(fbReflection, "reflection.png");
         guardarImagen(fbTransmission, "transmission.png");
     #endif
-
     FreeImage_DeInitialise();
-
     return 0;
 }
 
