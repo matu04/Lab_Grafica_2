@@ -393,7 +393,7 @@ public:
         double a = dx * dx + dz * dz;
         double b = 2.0 * (ox * dx + oz * dz);
         double c = ox * ox + oz * oz - radio * radio;
-        //Caso rayo paralelo a la pared//
+        //Caso rayo paralelo al eje del cilindro//
         if (abs(a) > EPSILON){
             double discriminante = b * b - 4.0 * a * c;
             if (discriminante >= 0){
@@ -675,25 +675,8 @@ void cargarEscena(Escena& escena){
         e->grupo = escena.cantidadObjetos;
         escena.agregarObjeto(e);
     }
-    /*
-    for (XMLElement* triangle = root->FirstChildElement("triangle"); triangle != nullptr; triangle = triangle->NextSiblingElement("triangle"))
-    {
-        Vec v0(triangle->DoubleAttribute("v0x"), triangle->DoubleAttribute("v0y"), triangle->DoubleAttribute("v0z"));
-        Vec v1(triangle->DoubleAttribute("v1x"), triangle->DoubleAttribute("v1y"), triangle->DoubleAttribute("v1z"));
-        Vec v2(triangle->DoubleAttribute("v2x"), triangle->DoubleAttribute("v2y"), triangle->DoubleAttribute("v2z"));
-
-        Material mat;
-
-        mat.diffuse = Color(triangle->DoubleAttribute("dr"), triangle->DoubleAttribute("dg"), triangle->DoubleAttribute("db"));
-        mat.specular = Color(triangle->DoubleAttribute("sr"), triangle->DoubleAttribute("sg"), triangle->DoubleAttribute("sb"));
-        mat.shininess = triangle->DoubleAttribute("shininess");
-        mat.reflectivity = triangle->DoubleAttribute("reflectivity");
-
-        Triangulo* t = new Triangulo(v0, v1, v2, mat);
-        t->grupo = escena.cantidadObjetos;
-        escena.agregarObjeto(t);
-    }*/
     
+
     for (XMLElement* plane = root->FirstChildElement("plane"); plane != nullptr; plane = plane->NextSiblingElement("plane")){
         double px = plane->DoubleAttribute("px");
         double py = plane->DoubleAttribute("py");
@@ -794,14 +777,6 @@ Vec refract(const Vec& I, const Vec& N, double idr, bool& rit){ //I vector incid
         return Vec(0,0,0);
     }
     return I * eta + n * (eta * PEI - sqrt(k));
-}
-
-double fresnelSchlick(double cosi, double ior){
-    double r0 = (1.0 - ior) / (1.0 + ior);
-    r0 = r0 * r0;
-    if (cosi < 0.0) cosi = 0.0;
-    if (cosi > 1.0) cosi = 1.0;
-    return r0 + (1.0 - r0) * pow(1.0 - cosi, 5.0);
 }
 
 bool intersectarEscena(Escena& escena, Rayo rayo, infoImpacto& hit, Objeto*& objetoImpactado){
@@ -906,11 +881,7 @@ Color shade(Escena& escena,infoImpacto& hit,Objeto* objetoImpactado,Rayo r,int d
             colorRefractado = traceRay(escena, refractedRay, depth + 1);
         }
     }
-    Vec N = hit.normal.normalizar();
-    double cosi = fabs(V.productoEscalar(N));
-    double F = fresnelSchlick(cosi, hit.material.ior);
-    Color colorFresnel = (colorReflejado * hit.material.reflectivity) * F + (colorRefractado * hit.material.transparency) * (1.0 - F);
-    colorFinal = colorFinal + colorFresnel;
+    colorFinal = colorFinal + (colorReflejado * hit.material.reflectivity) + (colorRefractado * hit.material.transparency);
     return colorFinal;
 }
 
@@ -981,186 +952,3 @@ int main(int argc, char* argv[]){
     FreeImage_DeInitialise();
     return 0;
 }
-
-
-
-
-//
-//// ===================================
-//// TRACE RAY (NUCLEO DEL RAY TRACER)
-//// ===================================
-//
-//Color traceRay(Rayo rayo, int depth)
-//{
-//    if (depth > MAX_DEPTH)
-//        return backgroundColor;
-//
-//    infoImpacto impacto;
-//
-//    bool huboInterseccion =
-//        escena.intersectar(rayo, impacto);
-//
-//    if (!huboInterseccion)
-//        return backgroundColor;
-//
-//    return shade(impacto, rayo, depth);
-//}
-//
-//
-//
-//// ===================================
-//// SHADING
-//// ===================================
-//
-//Color shade(infoImpacto impacto, Rayo rayo, int depth)
-//{
-//    Material mat = impacto.material;
-//
-//    Color finalColor = Color(0, 0, 0);
-//
-//
-//
-//    // ============================
-//    // 1. AMBIENT
-//    // ============================
-//
-//    finalColor +=
-//        mat.ambient * ambientLight;
-//
-//
-//
-//    // ============================
-//    // 2. LUCES
-//    // ============================
-//
-//    for cada luz
-//    {
-//        Vec L =
-//            (light.position - impacto.punto).normalizar();
-//
-//
-//
-//    // ========================
-//    // SHADOW RAY
-//    // ========================
-//
-//    Rayo shadowRay(
-//        impacto.punto + epsilon * impacto.normal,
-//        L
-//    );
-//
-//    bool inShadow =
-//        escena.hayInterseccion(
-//            shadowRay
-//        );
-//
-//
-//
-//    if (!inShadow)
-//    {
-//
-//        // ====================
-//        // DIFUSO (LAMBERT)
-//        // ====================
-//
-//        double diff =
-//            max(0, impacto.normal.productoEscalar(L));
-//
-//        finalColor +=
-//            mat.diffuse *
-//            light.color *
-//            diff;
-//
-//
-//
-//        // ====================
-//        // PHONG ESPECULAR
-//        // ====================
-//
-//        Vec R =
-//            reflect(L.opuesto(), impacto.normal);
-//
-//        Vec V =
-//            rayo.direccion.opuesto().normalizar();
-//
-//        double spec =
-//            pow(max(impacto.normal.productoEscalar(R),0),
-//                mat.shininess);
-//
-//        finalColor +=
-//            mat.specular *
-//            light.color *
-//            spec;
-//    }
-//    }
-//
-//
-//
-//        // ============================
-//        // 3. REFLEXION
-//        // ============================
-//
-//        if (mat.reflectivity > 0)
-//        {
-//            Vec R =
-//                reflect(rayo.direction,
-//                    impacto.normal);
-//
-//            Rayo reflectedRay(
-//                impacto.punto + epsilon * impacto.normal,
-//                R
-//            );
-//
-//            Color reflectedColor =
-//                traceRay(
-//                    reflectedRay,
-//                    depth + 1
-//                );
-//
-//            finalColor +=
-//                reflectedColor *
-//                mat.reflectivity;
-//        }
-//
-//
-//
-//    // ============================
-//    // 4. REFRACCION
-//    // ============================
-//
-//    if (mat.transparency > 0)
-//    {
-//        bool totalInternalReflection;
-//
-//        Vec T =
-//            refract(
-//                rayo.direction,
-//                impacto.normal,
-//                mat.ior,
-//                totalInternalReflection
-//            );
-//
-//        if (!totalInternalReflection)
-//        {
-//            Rayo refractedRay(
-//                impacto.punto - epsilon * impacto.normal,
-//                T
-//            );
-//
-//            Color refractedColor =
-//                traceRay(
-//                    refractedRay,
-//                    depth + 1
-//                );
-//
-//            finalColor +=
-//                refractedColor *
-//                mat.transparency;
-//        }
-//    }
-//
-//    return finalColor;
-//}
-//
-
-
