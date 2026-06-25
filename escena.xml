@@ -1,8 +1,8 @@
-<scene>
+<escena>
 
-	<resolution width="800" height="600"/>
+	<resolucion width="800" height="600"/>
 
-	<camera
+	<camara
         px="0"
         py="1.0"
         pz="0"
@@ -20,26 +20,26 @@
 
 
 
-	<light
+	<luces
         x="-1.5"
         y="1.8"
         z="-4"
         intensidad="1.0"
     />
 
-    <light
+    <luces
         x="1.5"
         y="1.8"
         z="-4"
         intensidad="1.0"
     />
 
-    <sphere
+    <esfera
         x="-1.5"
         y="1"
         z="-6"
 
-        radius="0.5"
+        radio="0.5"
 
         dr="0"
         dg="1"
@@ -49,20 +49,20 @@
         sg="1"
         sb="1"
 
-        shininess="32"
-        reflectivity="0.5"
+        brillo="32"
+        reflexion="0.5"
         ior = "0.0"
-        transparency = "0.0"
+        transparencia = "0.0"
 
     />
 
 
-<sphere
+<esfera
         x="1.5"
         y="1"
         z="-6"
 
-        radius="0.5"
+        radio="0.5"
 
         dr="1"
         dg="0"
@@ -72,21 +72,21 @@
         sg="1"
         sb="1"
 
-        shininess="32"
-        reflectivity="0.5"
+        brillo="32"
+        reflexion="0.5"
         ior = "0.0"
-        transparency = "0.0"
+        transparencia = "0.0"
 
     />
 
 
 
-    <sphere
+    <esfera
         x="-0.5"
         y="-0.7"
         z="-4.8"
 
-        radius="0.4"
+        radio="0.4"
 
         dr="1"
         dg="1"
@@ -96,21 +96,21 @@
         sg="1"
         sb="1"
 
-        shininess="16"
-        reflectivity="0"
+        brillo="16"
+        reflexion="0"
         ior = "1.2"
-        transparency = "1"
+        transparencia = "1"
 
     />
 
 
 
-<sphere
+<esfera
         x="0.5"
         y="0"
         z="-5.3"
 
-        radius="0.4"
+        radio="0.4"
 
         dr="1"
         dg="1"
@@ -120,16 +120,16 @@
         sg="1"
         sb="1"
 
-        shininess="16"
-        reflectivity="0"
+        brillo="16"
+        reflexion="0"
         ior = "1"
-        transparency = "1"
+        transparencia = "1"
 
     />
 
 
 
-	<triangle
+	<triangulo
         v0x="-1"
         v0y="-1"
         v0z="-4"
@@ -150,19 +150,19 @@
         sg="1"
         sb="1"
 
-        shininess="32"
+        brillo="32"
 
-        reflectivity="0.15"
+        reflexion="0.15"
     />
 
 
 
-    <diamond
+    <diamante
         x="0"
         y="0.8"
         z="-5"
 
-        scale="0.6"
+        escala="0.6"
 
         dr="0.55"
         dg="0.90"
@@ -172,16 +172,16 @@
         sg="1"
         sb="1"
 
-        shininess="512"
+        brillo="512"
 
-        reflectivity="0.2"
-        transparency="0.5"
+        reflexion="0.2"
+        transparencia="0.5"
         ior="2.417"
     />
 
 
 
-    <table
+    <mesa
         x="0"
         y="-1.0"
         z="-5"
@@ -194,15 +194,15 @@
         sg="0.2"
         sb="0.2"
 
-        shininess="32"
-        reflectivity="0"
+        brillo="32"
+        reflexion="0"
         ior = "0.0"
-        transparency = "0.0"
+        transparencia = "0.0"
     />
 
 
 
-	<plane
+	<plano
         px="0"
         py="-2"
         pz="0"
@@ -219,15 +219,15 @@
         sg="0"
         sb="0"
 
-        shininess="0"
-        transparency="0.0"
+        brillo="0"
+        transparencia="0.0"
         ior="1.0"
-        reflectivity="0"
+        reflexion="0"
     />
 
 
 
-	<plane
+	<plano
         px="0"
         py="2"
         pz="0"
@@ -244,15 +244,15 @@
         sg="0"
         sb="0"
 
-        shininess="0"
-        transparency="0.0"
+        brillo="0"
+        transparencia="0.0"
         ior="1.0"
-        reflectivity="0"
+        reflexion="0"
     />
 
 
 
-	<plane
+	<plano
         px="-3"
         py="0"
         pz="0"
@@ -269,15 +269,15 @@
         sg="1"
         sb="1"
 
-        shininess="32"
-        transparency="0.0"
+        brillo="32"
+        transparencia="0.0"
         ior="1.0"
-        reflectivity="0"
+        reflexion="0"
     />
 
 
 
-	<plane
+	<plano
         px="3"
         py="0"
         pz="0"
@@ -294,15 +294,15 @@
         sg="1"
         sb="1"
 
-        shininess="32"
-        transparency="0.0"
+        brillo="32"
+        transparencia="0.0"
         ior="1.0"
-        reflectivity="0"
+        reflexion="0"
     />
 
 
 
-	<plane
+	<plano
         px="0"
         py="0"
         pz="-10"
@@ -319,18 +319,18 @@
         sg="0"
         sb="0"
 
-        shininess="0"
-        transparency="0.0"
+        brillo="0"
+        transparencia="0.0"
         ior="1.0"
-        reflectivity="0"
+        reflexion="0"
     />
 
-    <cylinder
+    <cilindro
         x="0"
         y="-0.55"
         z="-5"
 
-        radius="0.5"
+        radio="0.5"
         height="1.0"
 
         dr="0.2"
@@ -341,10 +341,10 @@
         sg="1"
         sb="1"
 
-        shininess="64"
-        transparency="0.0"
+        brillo="64"
+        transparencia="0.0"
         ior="1.0"
-        reflectivity="0"
+        reflexion="0"
     />
 
-</scene>
+</escena>

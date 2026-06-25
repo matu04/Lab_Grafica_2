@@ -104,14 +104,14 @@ Rayo Camara::generarRayo(double x, double y) {
     // coordenadas normalizadas [0,1]
     double u = x / ancho;
     double v = y / alto;
-    double aspect = (double)ancho / alto;
+    double aspecto = (double)ancho / alto;
     // coordenadas viewport [-1,1]
-    double px = (2.0 * u - 1.0) * aspect;
+    double px = (2.0 * u - 1.0) * aspecto;
     double py = (1.0 - 2.0 * v);
     // aplicar FOV
-    double scale = tan(fov * 0.5 * PI / 180.0);
-    px *= scale;
-    py *= scale;
+    double escala = tan(fov * 0.5 * PI / 180.0);
+    px *= escala;
+    py *= escala;
     Vec dir = (adelante + derecha * px + arriba * py).normalizar();
     return Rayo(posicion, dir);
 }
@@ -185,12 +185,12 @@ public:
 
 struct Material
 {
-    Color ambient;
-    Color diffuse;
-    Color specular;
-    double shininess;
-    double reflectivity;
-    double transparency;
+    Color ambiente;
+    Color difuso;
+    Color especular;
+    double brillo;
+    double reflexion;
+    double transparencia;
     double ior; // indice refraccion
 };
 
@@ -621,144 +621,144 @@ void cargarEscena(Escena& escena){
         }
     #endif
 
-    XMLElement* root = doc.FirstChildElement("scene");
+    XMLElement* root = doc.FirstChildElement("escena");
     if (!root){
-        std::cout << "Error: no existe <scene> en el XML\n";
+        std::cout << "Error: no existe <escena> en el XML\n";
         exit(1);
     }
 
-    XMLElement* resolution = root->FirstChildElement("resolution");
-    int width = resolution->IntAttribute("width");
-    int height = resolution->IntAttribute("height");
+    XMLElement* resolucion = root->FirstChildElement("resolucion");
+    int width = resolucion->IntAttribute("width");
+    int height = resolucion->IntAttribute("height");
 
-    XMLElement* camera = root->FirstChildElement("camera");
-    double px = camera->DoubleAttribute("px");
-    double py = camera->DoubleAttribute("py");
-    double pz = camera->DoubleAttribute("pz");
+    XMLElement* camara = root->FirstChildElement("camara");
+    double px = camara->DoubleAttribute("px");
+    double py = camara->DoubleAttribute("py");
+    double pz = camara->DoubleAttribute("pz");
 
-    double lx = camera->DoubleAttribute("lx");
-    double ly = camera->DoubleAttribute("ly");
-    double lz = camera->DoubleAttribute("lz");
+    double lx = camara->DoubleAttribute("lx");
+    double ly = camara->DoubleAttribute("ly");
+    double lz = camara->DoubleAttribute("lz");
 
-    double upx = camera->DoubleAttribute("upx");
-    double upy = camera->DoubleAttribute("upy");
-    double upz = camera->DoubleAttribute("upz");
+    double upx = camara->DoubleAttribute("upx");
+    double upy = camara->DoubleAttribute("upy");
+    double upz = camara->DoubleAttribute("upz");
 
-    double fov = camera->DoubleAttribute("fov");
+    double fov = camara->DoubleAttribute("fov");
     escena.cam = Camara(Vec(px, py, pz), Vec(lx, ly, lz), Vec(upx, upy, upz), fov, width, height);
 
-    for (XMLElement* light = root->FirstChildElement("light"); light != nullptr; light = light->NextSiblingElement("light")){
-        double lxPos = light->DoubleAttribute("x");
-        double lyPos = light->DoubleAttribute("y");
-        double lzPos = light->DoubleAttribute("z");
-        double intensidad = light->DoubleAttribute("intensidad");
+    for (XMLElement* luces = root->FirstChildElement("luces"); luces != nullptr; luces = luces->NextSiblingElement("luces")){
+        double lxPos = luces->DoubleAttribute("x");
+        double lyPos = luces->DoubleAttribute("y");
+        double lzPos = luces->DoubleAttribute("z");
+        double intensidad = luces->DoubleAttribute("intensidad");
 
         Luz* luz = new Luz(Vec(lxPos, lyPos, lzPos), intensidad);
         escena.agregarLuz(luz);
     }
 
-    for (XMLElement* sphere = root->FirstChildElement("sphere"); sphere != nullptr; sphere = sphere->NextSiblingElement("sphere")){
-        double x = sphere->DoubleAttribute("x");
-        double y = sphere->DoubleAttribute("y");
-        double z = sphere->DoubleAttribute("z");
-        double radius = sphere->DoubleAttribute("radius");
+    for (XMLElement* esfera = root->FirstChildElement("esfera"); esfera != nullptr; esfera = esfera->NextSiblingElement("esfera")){
+        double x = esfera->DoubleAttribute("x");
+        double y = esfera->DoubleAttribute("y");
+        double z = esfera->DoubleAttribute("z");
+        double radio = esfera->DoubleAttribute("radio");
 
         Material mat;
-        mat.diffuse = Color(sphere->DoubleAttribute("dr"), sphere->DoubleAttribute("dg"), sphere->DoubleAttribute("db"));
-        mat.specular = Color(sphere->DoubleAttribute("sr"), sphere->DoubleAttribute("sg"), sphere->DoubleAttribute("sb"));
-        mat.shininess = sphere->DoubleAttribute("shininess");
-        mat.reflectivity = sphere->DoubleAttribute("reflectivity");
-        mat.ior = sphere->DoubleAttribute("ior");
-        mat.transparency = sphere->DoubleAttribute("transparency");
+        mat.difuso = Color(esfera->DoubleAttribute("dr"), esfera->DoubleAttribute("dg"), esfera->DoubleAttribute("db"));
+        mat.especular = Color(esfera->DoubleAttribute("sr"), esfera->DoubleAttribute("sg"), esfera->DoubleAttribute("sb"));
+        mat.brillo = esfera->DoubleAttribute("brillo");
+        mat.reflexion = esfera->DoubleAttribute("reflexion");
+        mat.ior = esfera->DoubleAttribute("ior");
+        mat.transparencia = esfera->DoubleAttribute("transparencia");
 
-        Esfera* e = new Esfera(Vec(x, y, z), radius, mat);
+        Esfera* e = new Esfera(Vec(x, y, z), radio, mat);
         e->grupo = escena.cantidadObjetos;
         escena.agregarObjeto(e);
     }
     
 
-    for (XMLElement* plane = root->FirstChildElement("plane"); plane != nullptr; plane = plane->NextSiblingElement("plane")){
-        double px = plane->DoubleAttribute("px");
-        double py = plane->DoubleAttribute("py");
-        double pz = plane->DoubleAttribute("pz");
+    for (XMLElement* plano = root->FirstChildElement("plano"); plano != nullptr; plano = plano->NextSiblingElement("plano")){
+        double px = plano->DoubleAttribute("px");
+        double py = plano->DoubleAttribute("py");
+        double pz = plano->DoubleAttribute("pz");
 
-        double nx = plane->DoubleAttribute("nx");
-        double ny = plane->DoubleAttribute("ny");
-        double nz = plane->DoubleAttribute("nz");
+        double nx = plano->DoubleAttribute("nx");
+        double ny = plano->DoubleAttribute("ny");
+        double nz = plano->DoubleAttribute("nz");
 
         Material mat;
-        mat.diffuse = Color(plane->DoubleAttribute("dr"), plane->DoubleAttribute("dg"), plane->DoubleAttribute("db"));
-        mat.specular = Color(plane->DoubleAttribute("sr"), plane->DoubleAttribute("sg"), plane->DoubleAttribute("sb"));
-        mat.shininess = plane->DoubleAttribute("shininess");
-        mat.reflectivity = plane->DoubleAttribute("reflectivity");
-        mat.ior = plane->DoubleAttribute("ior");
-        mat.transparency = plane->DoubleAttribute("transparency");
+        mat.difuso = Color(plano->DoubleAttribute("dr"), plano->DoubleAttribute("dg"), plano->DoubleAttribute("db"));
+        mat.especular = Color(plano->DoubleAttribute("sr"), plano->DoubleAttribute("sg"), plano->DoubleAttribute("sb"));
+        mat.brillo = plano->DoubleAttribute("brillo");
+        mat.reflexion = plano->DoubleAttribute("reflexion");
+        mat.ior = plano->DoubleAttribute("ior");
+        mat.transparencia = plano->DoubleAttribute("transparencia");
 
         Plano* p = new Plano(Vec(px, py, pz), Vec(nx, ny, nz), mat);
         p->grupo = escena.cantidadObjetos;
         escena.agregarObjeto(p);
     }
 
-    for (XMLElement* diamond = root->FirstChildElement("diamond"); diamond != nullptr; diamond = diamond->NextSiblingElement("diamond")){
-        double x = diamond->DoubleAttribute("x");
-        double y = diamond->DoubleAttribute("y");
-        double z = diamond->DoubleAttribute("z");
-        double escala = diamond->DoubleAttribute("scale", 1.0);
+    for (XMLElement* diamante = root->FirstChildElement("diamante"); diamante != nullptr; diamante = diamante->NextSiblingElement("diamante")){
+        double x = diamante->DoubleAttribute("x");
+        double y = diamante->DoubleAttribute("y");
+        double z = diamante->DoubleAttribute("z");
+        double escala = diamante->DoubleAttribute("escala", 1.0);
 
         Material mat;
-        mat.diffuse = Color(diamond->DoubleAttribute("dr", 0.55), diamond->DoubleAttribute("dg", 0.90), diamond->DoubleAttribute("db", 1.00));
-        mat.specular = Color(diamond->DoubleAttribute("sr", 1.0), diamond->DoubleAttribute("sg", 1.0), diamond->DoubleAttribute("sb", 1.0));
-        mat.shininess = diamond->DoubleAttribute("shininess");
-        mat.reflectivity = diamond->DoubleAttribute("reflectivity");
-        mat.transparency = diamond->DoubleAttribute("transparency");
-        mat.ior = diamond->DoubleAttribute("ior");
-        mat.ambient = mat.diffuse * 0.1;
+        mat.difuso = Color(diamante->DoubleAttribute("dr", 0.55), diamante->DoubleAttribute("dg", 0.90), diamante->DoubleAttribute("db", 1.00));
+        mat.especular = Color(diamante->DoubleAttribute("sr", 1.0), diamante->DoubleAttribute("sg", 1.0), diamante->DoubleAttribute("sb", 1.0));
+        mat.brillo = diamante->DoubleAttribute("brillo");
+        mat.reflexion = diamante->DoubleAttribute("reflexion");
+        mat.transparencia = diamante->DoubleAttribute("transparencia");
+        mat.ior = diamante->DoubleAttribute("ior");
+        mat.ambiente = mat.difuso * 0.1;
 
         agregarDiamante(escena, Vec(x, y, z), escala, mat);
     }
 
-    for (XMLElement* cylinder = root->FirstChildElement("cylinder"); cylinder != nullptr; cylinder = cylinder->NextSiblingElement("cylinder")){
-        double x = cylinder->DoubleAttribute("x");
-        double y = cylinder->DoubleAttribute("y");
-        double z = cylinder->DoubleAttribute("z");
-        double radius = cylinder->DoubleAttribute("radius");
-        double height = cylinder->DoubleAttribute("height");
+    for (XMLElement* cilindro = root->FirstChildElement("cilindro"); cilindro != nullptr; cilindro = cilindro->NextSiblingElement("cilindro")){
+        double x = cilindro->DoubleAttribute("x");
+        double y = cilindro->DoubleAttribute("y");
+        double z = cilindro->DoubleAttribute("z");
+        double radio = cilindro->DoubleAttribute("radio");
+        double height = cilindro->DoubleAttribute("height");
 
         Material mat;
-        mat.diffuse = Color(cylinder->DoubleAttribute("dr"), cylinder->DoubleAttribute("dg"), cylinder->DoubleAttribute("db"));
-        mat.specular = Color(cylinder->DoubleAttribute("sr"), cylinder->DoubleAttribute("sg"), cylinder->DoubleAttribute("sb"));
-        mat.shininess = cylinder->DoubleAttribute("shininess");
-        mat.reflectivity = cylinder->DoubleAttribute("reflectivity");
-        mat.transparency = cylinder->DoubleAttribute("transparency");
-        mat.ior = cylinder->DoubleAttribute("ior");
+        mat.difuso = Color(cilindro->DoubleAttribute("dr"), cilindro->DoubleAttribute("dg"), cilindro->DoubleAttribute("db"));
+        mat.especular = Color(cilindro->DoubleAttribute("sr"), cilindro->DoubleAttribute("sg"), cilindro->DoubleAttribute("sb"));
+        mat.brillo = cilindro->DoubleAttribute("brillo");
+        mat.reflexion = cilindro->DoubleAttribute("reflexion");
+        mat.transparencia = cilindro->DoubleAttribute("transparencia");
+        mat.ior = cilindro->DoubleAttribute("ior");
 
-        Cilindro* c = new Cilindro(Vec(x,y,z), radius, height, mat);
+        Cilindro* c = new Cilindro(Vec(x,y,z), radio, height, mat);
         c->grupo = escena.cantidadObjetos;
         escena.agregarObjeto(c);
     }
 
-    for (XMLElement* table = root->FirstChildElement("table"); table != nullptr; table = table->NextSiblingElement("table")){
-        double x = table->DoubleAttribute("x");
-        double y = table->DoubleAttribute("y");
-        double z = table->DoubleAttribute("z");
+    for (XMLElement* mesa = root->FirstChildElement("mesa"); mesa != nullptr; mesa = mesa->NextSiblingElement("mesa")){
+        double x = mesa->DoubleAttribute("x");
+        double y = mesa->DoubleAttribute("y");
+        double z = mesa->DoubleAttribute("z");
 
         Material mat;
-        mat.diffuse = Color(table->DoubleAttribute("dr"), table->DoubleAttribute("dg"), table->DoubleAttribute("db"));
-        mat.specular = Color(table->DoubleAttribute("sr"), table->DoubleAttribute("sg"), table->DoubleAttribute("sb"));
-        mat.shininess = table->DoubleAttribute("shininess");
-        mat.reflectivity = table->DoubleAttribute("reflectivity");
-        mat.transparency = table->DoubleAttribute("transparency");
-        mat.ior = table->DoubleAttribute("ior");
+        mat.difuso = Color(mesa->DoubleAttribute("dr"), mesa->DoubleAttribute("dg"), mesa->DoubleAttribute("db"));
+        mat.especular = Color(mesa->DoubleAttribute("sr"), mesa->DoubleAttribute("sg"), mesa->DoubleAttribute("sb"));
+        mat.brillo = mesa->DoubleAttribute("brillo");
+        mat.reflexion = mesa->DoubleAttribute("reflexion");
+        mat.transparencia = mesa->DoubleAttribute("transparencia");
+        mat.ior = mesa->DoubleAttribute("ior");
 
         agregarMesa(escena, Vec(x, y, z), mat);
     }
 }
 
-Vec reflect(const Vec& I, const Vec& N){ // I es el vector incidente y N es la normal de la superficie, retorna el vector reflejado//
+Vec reflexion(const Vec& I, const Vec& N){ // I es el vector incidente y N es la normal de la superficie, retorna el vector reflejado//
     return I - N * (2.0 * I.productoEscalar(N));
 }
 
-Vec refract(const Vec& I, const Vec& N, double idr, bool& rit){ //I vector incidente, N normal en el punto de impacto, idr indice de refraccion, rit reflexion interna total, retorna el vector refractado//
+Vec refraccion(const Vec& I, const Vec& N, double idr, bool& rit){ //I vector incidente, N normal en el punto de impacto, idr indice de refraccion, rit reflexion interna total, retorna el vector refractado//
     double PEI = I.productoEscalar(N);
     double idrI = 1.0; //indice de refraccion incidente
     double idrT = idr; //indice de refraccion transmitido
@@ -794,23 +794,23 @@ bool intersectarEscena(Escena& escena, Rayo rayo, infoImpacto& hit, Objeto*& obj
     return hit.impacto;
 }
 
-Color renderReflectionPixel(Escena& escena, Rayo r){
+Color renderReflexionPixel(Escena& escena, Rayo r){
     infoImpacto hit;
     Objeto* obj = nullptr;
     if (!intersectarEscena(escena, r, hit, obj))
         return Color(0,0,0);
 
-    double v = hit.material.reflectivity;
+    double v = hit.material.reflexion;
     return Color(v,v,v);
 }
 
-Color renderTransmissionPixel(Escena& escena, Rayo r){
+Color renderTrasmisionPixel(Escena& escena, Rayo r){
     infoImpacto hit;
     Objeto* obj = nullptr;
     if (!intersectarEscena(escena, r, hit, obj))
         return Color(0,0,0);
 
-    double v = hit.material.transparency;
+    double v = hit.material.transparencia;
     return Color(v,v,v);
 }
 
@@ -818,14 +818,14 @@ Color traceRay(Escena& escena, Rayo r, int depth); //se define aca porque la fun
 
 Color shade(Escena& escena,infoImpacto& hit,Objeto* objetoImpactado,Rayo r,int depth){
     Color colorFinal(0,0,0);
-    Color ambiente = hit.material.diffuse * 0.1;
+    Color ambiente = hit.material.difuso * 0.1;
     Vec V;
     for (int i = 0; i < escena.cantidadLuces; i++){
         Vec n = hit.normal;
         Vec dirALuz = escena.luces[i]->posicion - hit.punto;
         Vec L = dirALuz.normalizar();
         V = r.direccion.opuesto().normalizar();
-        Vec R = reflect(L.opuesto(),hit.normal);
+        Vec R = reflexion(L.opuesto(),hit.normal);
         Rayo shadowRay(hit.punto + hit.normal * EPSILON, dirALuz.normalizar());
         Color filtroSombra(1,1,1);
         bool bloqueada = false;
@@ -840,8 +840,8 @@ Color shade(Escena& escena,infoImpacto& hit,Objeto* objetoImpactado,Rayo r,int d
             hitSombra.impacto = false;
             if (escena.objetos[i]->interseccion(shadowRay, hitSombra) && hitSombra.t < distanciaLuz){
                 Material mat = hitSombra.material;
-                if(mat.transparency > 0){
-                    Color filtro = mat.diffuse * (0.5 + 0.5 * mat.transparency);
+                if(mat.transparencia > 0){
+                    Color filtro = mat.difuso * (0.5 + 0.5 * mat.transparencia);
                     filtroSombra = filtroSombra * filtro;
                 } else {
                     bloqueada = true;
@@ -856,32 +856,32 @@ Color shade(Escena& escena,infoImpacto& hit,Objeto* objetoImpactado,Rayo r,int d
         if (intensidad < 0){
             intensidad = 0;
         }
-        Color difuso = (hit.material.diffuse * intensidad * escena.luces[i]->intensidad * atenuacion) * filtroSombra;
+        Color difuso = (hit.material.difuso * intensidad * escena.luces[i]->intensidad * atenuacion) * filtroSombra;
         double spec = R.productoEscalar(V);
         if (spec < 0){
             spec = 0;
         }
-        spec = pow(spec,hit.material.shininess);
-        Color especular = (hit.material.specular * spec * escena.luces[i]->intensidad * atenuacion) * filtroSombra;
+        spec = pow(spec,hit.material.brillo);
+        Color especular = (hit.material.especular * spec * escena.luces[i]->intensidad * atenuacion) * filtroSombra;
         colorFinal = colorFinal + difuso + especular;
     }
     colorFinal = colorFinal + ambiente;
     Color colorReflejado(0,0,0);
-    if (hit.material.reflectivity > 0 && depth < 5){
-        Vec direccionReflejada = reflect(r.direccion, hit.normal);
+    if (hit.material.reflexion > 0 && depth < 5){
+        Vec direccionReflejada = reflexion(r.direccion, hit.normal);
         Rayo reflectedRay(hit.punto + hit.normal * EPSILON, direccionReflejada);
         colorReflejado = traceRay(escena, reflectedRay, depth + 1);
     }
     Color colorRefractado(0,0,0);
-    if (hit.material.transparency > 0){
+    if (hit.material.transparencia > 0){
         bool tir;
-        Vec dirRefractada = refract(r.direccion, hit.normal, hit.material.ior, tir);
+        Vec dirRefractada = refraccion(r.direccion, hit.normal, hit.material.ior, tir);
         if (!tir){
             Rayo refractedRay(hit.punto - hit.normal * EPSILON, dirRefractada);
             colorRefractado = traceRay(escena, refractedRay, depth + 1);
         }
     }
-    colorFinal = colorFinal + (colorReflejado * hit.material.reflectivity) + (colorRefractado * hit.material.transparency);
+    colorFinal = colorFinal + (colorReflejado * hit.material.reflexion) + (colorRefractado * hit.material.transparencia);
     return colorFinal;
 }
 
@@ -918,8 +918,8 @@ void renderizarAuxiliar(Escena& escena, Framebuffer& fbReflection, Framebuffer& 
     for(int y=0;y<fbReflection.height;y++){
         for(int x=0;x<fbReflection.width;x++){
             Rayo r = escena.cam.generarRayo(x,y);
-            fbReflection.setPixel(x, y, renderReflectionPixel(escena,r));
-            fbTransmission.setPixel(x, y, renderTransmissionPixel(escena,r));
+            fbReflection.setPixel(x, y, renderReflexionPixel(escena,r));
+            fbTransmission.setPixel(x, y, renderTrasmisionPixel(escena,r));
         }
     }
 }
