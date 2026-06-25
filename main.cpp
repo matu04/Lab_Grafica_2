@@ -930,24 +930,24 @@ int main(int argc, char* argv[]){
     int height = 600;
 
     Framebuffer fb(width, height);
-    Framebuffer fbReflection(width, height);
-    Framebuffer fbTransmission(width, height);
+    Framebuffer fbReflexion(width, height);
+    Framebuffer fbTransmicion(width, height);
 
     Escena escena;
 
     cargarEscena(escena);
 
     renderizar(escena, fb);
-    renderizarAuxiliar(escena, fbReflection, fbTransmission);
+    renderizarAuxiliar(escena, fbReflexion, fbTransmicion);
 
     #ifdef _WIN32
         guardarImagen(fb, "../imagen.png");
-        guardarImagen(fbReflection, "../reflection.png");
-        guardarImagen(fbTransmission, "../transmission.png");
+        guardarImagen(fbReflexion, "../reflexion.png");
+        guardarImagen(fbTransmicion, "../transmision.png");
     #else
         guardarImagen(fb, "imagen.png");
-        guardarImagen(fbReflection, "reflection.png");
-        guardarImagen(fbTransmission, "transmission.png");
+        guardarImagen(fbReflexion, "reflexion.png");
+        guardarImagen(fbTransmicion, "transmision.png");
     #endif
     FreeImage_DeInitialise();
     return 0;
