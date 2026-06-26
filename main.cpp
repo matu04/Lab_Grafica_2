@@ -33,6 +33,11 @@ public:
         return Vec(x / s, y / s, z / s);
     }
 
+    Vec operator-() const
+    {
+        return Vec(-x, -y, -z);
+    }
+
     Vec opuesto() const {
         return Vec(-x, -y, -z);
     }
@@ -758,25 +763,40 @@ Vec reflexion(const Vec& I, const Vec& N){ // I es el vector incidente y N es la
     return I - N * (2.0 * I.productoEscalar(N));
 }
 
-Vec refraccion(const Vec& I, const Vec& N, double idr, bool& rit){ //I vector incidente, N normal en el punto de impacto, idr indice de refraccion, rit reflexion interna total, retorna el vector refractado//
-    double PEI = I.productoEscalar(N);
-    double idrI = 1.0; //indice de refraccion incidente
-    double idrT = idr; //indice de refraccion transmitido
-    Vec n = N;
-    rit = false;
-    if (PEI < 0) {
-        PEI = -PEI;
-    } else {
-        std::swap(idrI, idrT);
-        n = N.opuesto();
+Vec refraccion(const Vec& I, const Vec& N, double ior, bool& rit, bool& entrando)
+{
+    Vec uv = I.normalizar();
+    Vec n = N.normalizar();
+
+    double cosTheta = (-uv).productoEscalar(n);
+
+    double eta;
+
+    if (cosTheta > 0.0)
+    {
+        // Aire -> material
+        entrando = true;
+        eta = 1.0 / ior;
     }
-    double eta = idrI / idrT; //factor clave de Snell, indica cuanto se desvía el rayo al entrar en el nuevo medio
-    double k = 1.0 - eta * eta * (1.0 - PEI * PEI);
-    if (k < 0) {
-        rit = true;
-        return Vec(0,0,0);
+    else
+    {
+        // Material -> aire
+        entrando = false;
+        n = n.opuesto();
+        cosTheta = (-uv).productoEscalar(n);
+        eta = ior;
     }
-    return I * eta + n * (eta * PEI - sqrt(k));
+
+    double sin2Theta = 1.0 - cosTheta * cosTheta;
+
+    rit = eta * eta * sin2Theta > 1.0;
+
+    if (rit)
+        return Vec(0, 0, 0);
+
+    double cosPhi = sqrt(1.0 - eta * eta * sin2Theta);
+
+    return (uv * eta + n * (eta * cosTheta - cosPhi)).normalizar();
 }
 
 bool intersectarEscena(Escena& escena, Rayo rayo, infoImpacto& hit, Objeto*& objetoImpactado){
@@ -867,21 +887,36 @@ Color shade(Escena& escena,infoImpacto& hit,Objeto* objetoImpactado,Rayo r,int d
     }
     colorFinal = colorFinal + ambiente;
     Color colorReflejado(0,0,0);
-    if (hit.material.reflexion > 0 && depth < 5){
+    if ((hit.material.reflexion > 0 || hit.material.transparencia > 0) && depth < 5) {
         Vec direccionReflejada = reflexion(r.direccion, hit.normal);
         Rayo reflectedRay(hit.punto + hit.normal * EPSILON, direccionReflejada);
         colorReflejado = traceRay(escena, reflectedRay, depth + 1);
     }
+    double factorReflexion = hit.material.reflexion;
+    double factorTransparencia = hit.material.transparencia;
     Color colorRefractado(0,0,0);
-    if (hit.material.transparencia > 0){
+    if (hit.material.transparencia > 0 && depth < 5) {
         bool tir;
-        Vec dirRefractada = refraccion(r.direccion, hit.normal, hit.material.ior, tir);
-        if (!tir){
-            Rayo refractedRay(hit.punto - hit.normal * EPSILON, dirRefractada);
+        bool entrando;
+
+        Vec dirRefractada = refraccion(r.direccion,hit.normal,hit.material.ior,tir,entrando);
+
+        
+
+        if (tir)
+        {
+            factorReflexion = 1.0;
+            factorTransparencia = 0.0;
+        }
+        else
+        {
+            Vec origen = hit.punto + dirRefractada * EPSILON;
+            Rayo refractedRay(origen, dirRefractada);
             colorRefractado = traceRay(escena, refractedRay, depth + 1);
         }
     }
-    colorFinal = colorFinal + (colorReflejado * hit.material.reflexion) + (colorRefractado * hit.material.transparencia);
+
+    colorFinal = colorFinal+ colorReflejado * factorReflexion+ colorRefractado * factorTransparencia;
     return colorFinal;
 }
 
